@@ -2,6 +2,9 @@ class Category:
     ledger = []
     name = ''
  
+    def __init__(self, name):
+        self.name = name
+
     def check_funds(self, amount):
         if amount <= self.get_balance():
             return True
@@ -33,11 +36,11 @@ class Category:
             self.ledger = self.ledger
             return False
 
-    def transfer(self, amount, category):
+    def transfer(self, other_category, amount):
         self.amount = amount
 
-        self.withdraw(self.amount, f'Transfer to {category}')
-        category.deposit(amount, f'Transfer from {self}')
+        self.withdraw(self.amount, f'Transfer to {other_category}')
+        other_category.deposit(amount, f'Transfer from {self}')
 
         if self.ledger == self.ledger:
             return False
@@ -45,14 +48,5 @@ class Category:
             return True
 
 
-
-    
-
-
-
-food = Category()
-clothing = Category()
-food.deposit(200)
-clothing.deposit(500)
-
-print(food.get_balance())
+food = Category('food')
+food.deposit(500)
