@@ -35,7 +35,7 @@ class Category:
         else:
             return False
 
-    def transfer(self, other_category, amount):
+    def transfer(self, amount, other_category):
         self.amount = amount
 
         self.withdraw(self.amount, f'Transfer to {other_category}')
@@ -46,23 +46,20 @@ class Category:
         else:
             return True
 
+    def __str__(self):
+        title = self.name
+        title_pos = 15-len(title)//2
+        f_asterics = '*' * int(title_pos)
+        b_asterics = '*' * (int(title_pos)-1)
 
-clothes = Category('clothes')
-clothes.deposit(400)
-clothes.deposit(100)
-clothes.withdraw(50)
-print(clothes.check_funds(100))
-print(clothes.get_balance())
-print(clothes.withdraw(500))
+        if len(title) % 2 == 0:
+            return f'{f_asterics}{title}{f_asterics}'
+        else:
+            return f'{f_asterics}{title}{b_asterics}'
+        
 
-food = Category('food')
-food.deposit(400)
-food.deposit(100)
-food.withdraw(50)
-print(food.check_funds(100))
-print(food.get_balance())
-print(food.withdraw(500))
 
-food.transfer(clothes, 200)
-print(clothes.get_balance())
-print(food.get_balance())
+
+
+food = Category('business')
+print(food)
