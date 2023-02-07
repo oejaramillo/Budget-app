@@ -63,10 +63,10 @@ class Category:
             ledger_str += '{} {}\n'.format(description, amount)
 
         total = '{}'.format(self.get_balance())
-        return '{}\n{}\nTotal: {}'.format(cat_title, ledger_str, total)
+        return '{}\n{}Total: {}'.format(cat_title, ledger_str, total)
 
 
-
+### Cambiar formato de los números
 
 
 
