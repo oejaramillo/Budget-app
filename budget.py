@@ -21,12 +21,12 @@ class Category:
         return total
 
     def deposit(self, amount, description=''):
-        self.amount = amount
+        self.amount = float(amount)
         self.description = description
         self.ledger.append({'amount': self.amount, 'description': self.description})
 
     def withdraw(self, amount, description=''):
-        self.amount = amount * -1
+        self.amount = float(amount) * -1
         self.description = description
 
         if self.check_funds(amount) == True:
@@ -36,7 +36,7 @@ class Category:
             return False
 
     def transfer(self, amount, other_category):
-        self.amount = amount
+        self.amount = float(amount)
 
         self.withdraw(self.amount, f'Transfer to {other_category}')
         other_category.deposit(amount, f'Transfer from {self}')
@@ -47,19 +47,37 @@ class Category:
             return True
 
     def __str__(self):
-        title = self.name
-        title_pos = 15-len(title)//2
+        title_pos = 15-len(self.name)//2
         f_asterics = '*' * int(title_pos)
         b_asterics = '*' * (int(title_pos)-1)
 
-        if len(title) % 2 == 0:
-            return f'{f_asterics}{title}{f_asterics}'
+        if len(self.name) % 2 == 0:
+            cat_title = f'{f_asterics}{self.name}{f_asterics}'
         else:
-            return f'{f_asterics}{title}{b_asterics}'
-        
+            cat_title = f'{f_asterics}{self.name}{b_asterics}'
+
+        ledger_str = ''
+        for item in self.ledger:
+            description = item['description'][:23].ljust(23)
+            amount = '{}'.format(item['amount']).rjust(6)
+            ledger_str += '{} {}\n'.format(description, amount)
+
+        total = '{}'.format(self.get_balance())
+        return '{}\n{}\nTotal: {}'.format(cat_title, ledger_str, total)
 
 
 
 
-food = Category('business')
+
+
+food = Category('food')
+clothes = Category('clothes')
+
+food.deposit(400, 'sueldo')
+food.deposit(500, 'regalo')
+food.deposit(1000, 'prestamo')
+food.withdraw(50, 'pan')
+food.withdraw(100, 'ayuda a los ninos de la calle que necesitan ayuda')
+food.transfer(90, clothes)
+
 print(food)
