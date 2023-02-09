@@ -38,8 +38,8 @@ class Category:
     def transfer(self, amount, other_category):
         self.amount = float(amount)
 
-        self.withdraw(self.amount, f'Transfer to {other_category}')
-        other_category.deposit(amount, f'Transfer from {self}')
+        self.withdraw(self.amount, f'Transfer to {other_category.name}')
+        other_category.deposit(amount, f'Transfer from {self.name}')
 
         if self.ledger == self.ledger:
             return False
@@ -59,10 +59,10 @@ class Category:
         ledger_str = ''
         for item in self.ledger:
             description = item['description'][:23].ljust(23)
-            amount = '{}'.format(item['amount']).rjust(6)
-            ledger_str += '{} {}\n'.format(description, amount)
+            amount = '{:.2f}'.format(item['amount'])[:7].rjust(7)
+            ledger_str += '{}{}\n'.format(description, amount)
 
-        total = '{}'.format(self.get_balance())
+        total = '{:.2f}'.format(self.get_balance())
         return '{}\n{}Total: {}'.format(cat_title, ledger_str, total)
 
 
@@ -81,3 +81,4 @@ food.withdraw(100, 'ayuda a los ninos de la calle que necesitan ayuda')
 food.transfer(90, clothes)
 
 print(food)
+print(clothes)
