@@ -70,6 +70,10 @@ class Category:
 def create_spend_chart(categories):
     title = 'Percentage spent by category\n'
     spent = []
+    numbers = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
+    percentage = []
+    graph = ''
+
     for x in categories:
         withdraws = []
         for dic in x.ledger:
@@ -80,18 +84,16 @@ def create_spend_chart(categories):
                 withdraws.append(amount_values)
 
         spent.append(sum(withdraws))
-
-    percentage = []
+    
     for x in spent:
         calc = int(((x/sum(spent)*100) // 10)*10)
         percentage.append(calc)
 
+    ##Definimos la salida
+    for x in range(0, 11):
+        graph += '{}|          \n'.format(numbers[x]).rjust(10)
 
-         
-            
-
-
-    print(spent,'\n', percentage)
+    return print(title,graph, )
 
     
 
@@ -114,10 +116,6 @@ food.transfer(100, business)
 food.transfer(50.12, clothes)
 clothes.transfer(146.35, food)
 clothes.transfer(36.85, business)
-
-print(food)
-print(clothes)
-print(business)
 
 list_c = [food, clothes, business]
 
