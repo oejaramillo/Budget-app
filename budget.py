@@ -38,14 +38,15 @@ class Category:
     def transfer(self, amount, other_category):
         self.amount = float(amount)
 
-        self.withdraw(self.amount, f'Transfer to {other_category.name}')
-        other_category.deposit(amount, f'Transfer from {self.name}')
+        if self.amount <= self.get_balance():
+            self.withdraw(self.amount, f'Transfer to {other_category.name}')
+            other_category.deposit(amount, f'Transfer from {self.name}')
 
-        if self.ledger == self.ledger:
-            return False
-        else:
             return True
 
+        else:
+            return False
+            
     def __str__(self):
         title_pos = 15-len(self.name)//2
         f_asterics = '*' * int(title_pos)
@@ -66,19 +67,60 @@ class Category:
         return '{}\n{}Total: {}'.format(cat_title, ledger_str, total)
 
 
-### Cambiar formato de los números
+def create_spend_chart(categories):
+    title = 'Percentage spent by category\n'
+    spent = []
+    for x in categories:
+        withdraws = []
+        for dic in x.ledger:
+            clave_amount = list(dic.keys())[0]
+            amount_values = dic[clave_amount]
+
+            if amount_values < 0:
+                withdraws.append(amount_values)
+
+        spent.append(sum(withdraws))
+
+    percentage = []
+    for x in spent:
+        calc = int(((x/sum(spent)*100) // 10)*10)
+        percentage.append(calc)
 
 
+         
+            
+
+
+    print(spent,'\n', percentage)
+
+    
 
 food = Category('food')
 clothes = Category('clothes')
+business = Category('business')
 
-food.deposit(400, 'sueldo')
-food.deposit(500, 'regalo')
-food.deposit(1000, 'prestamo')
-food.withdraw(50, 'pan')
-food.withdraw(100, 'ayuda a los ninos de la calle que necesitan ayuda')
-food.transfer(90, clothes)
+food.deposit(100, 'ganancias de capital')
+clothes.deposit(500, 'donando por un senor')
+business.deposit(98.25, 'ingesos por trabajo')
+food.deposit(78.65, 'encontrado')
+clothes.deposit(7821.36, 'encontrad')
+
+food.withdraw(879.25, 'comida')
+food.withdraw(45.12, 'regalo')
+business.withdraw(9.65, 'perdido')
+clothes.withdraw(69.47, 'pantalon comprado')
+
+food.transfer(100, business)
+food.transfer(50.12, clothes)
+clothes.transfer(146.35, food)
+clothes.transfer(36.85, business)
 
 print(food)
 print(clothes)
+print(business)
+
+list_c = [food, clothes, business]
+
+create_spend_chart(list_c)
+
+
