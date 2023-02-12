@@ -70,10 +70,15 @@ class Category:
 def create_spend_chart(categories):
     title = 'Percentage spent by category\n'
     spent = []
-    numbers = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
+    numbers = ['100', ' 90', ' 80', ' 70', ' 60', ' 50', ' 40', ' 30', ' 20', ' 10', '  0']
     percentage = []
+    
+    lineas = []
     graph = ''
 
+    cuentas = []
+
+    # Calculamos el porcentaje en el formato pedido
     for x in categories:
         withdraws = []
         for dic in x.ledger:
@@ -89,11 +94,19 @@ def create_spend_chart(categories):
         calc = int(((x/sum(spent)*100) // 10)*10)
         percentage.append(calc)
 
-    ##Definimos la salida
-    for x in range(0, 11):
-        graph += '{}|          \n'.format(numbers[x]).rjust(10)
+    # Defnimos las líneas en el formato pedido, las líneas son una lista de strings        
+    for y in range(0, 11):
+        for x in range(0, len(percentage)):
+            
+            
+            # Hay que definir el segundo corchete que puede variar
+            lineas.append('{}| {}\n'.format(numbers[y], x))
 
-    return print(title,graph, )
+    # Se defie el gráfico
+    for x in range(0, 11):
+        graph += '{}'.format(lineas[x])
+    
+    return print(title, graph, sep='')
 
     
 
