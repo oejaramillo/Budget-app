@@ -96,17 +96,16 @@ def create_spend_chart(categories):
 
     # Defnimos las líneas en el formato pedido, las líneas son una lista de strings        
     for y in range(0, 11):
-        for x in range(0, len(percentage)):
+        lineas.append('{}| {}\n'.format(numbers[y]))
+        
+    # Hay que definir el segundo corchete que puede variar
+    for x in range(0, len(percentage)):
             
-            
-            # Hay que definir el segundo corchete que puede variar
-            lineas.append('{}| {}\n'.format(numbers[y], x))
-
-    # Se defie el gráfico
+    # Se define el gráfico
     for x in range(0, 11):
         graph += '{}'.format(lineas[x])
     
-    return print(title, graph, sep='')
+    return print(lineas)
 
     
 
