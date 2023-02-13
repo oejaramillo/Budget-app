@@ -79,6 +79,9 @@ def create_spend_chart(categories):
     
 
     cuentas = []
+    len_c = []
+    nombre_c = []
+    lineas_c = ''
 
 
     
@@ -110,26 +113,46 @@ def create_spend_chart(categories):
     for x in range(0, 11):
         if len(graph) == 1:
             lineas += '{}| {}\n'.format(str(numbers[x]).rjust(3), graph[0][x])
-            guiones = '    '+'-'*4
+            guiones = '    '+'-'*4+'\n'
         elif len(graph) == 2:
             lineas += '{}| {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x])
-            guiones = '    '+'-'*7
+            guiones = '    '+'-'*7+'\n'
         elif len(graph) == 3:
             lineas += '{}| {}  {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x])
-            guiones = '    '+'-'*10
+            guiones = '    '+'-'*10+'\n'
         elif len(graph) == 4:
             lineas += '{}| {}  {}  {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x], graph[3][x])
-            guiones = '    '+'-'*13
+            guiones = '    '+'-'*13+'\n'
         elif len(graph) == 5:          
             lineas += '{}| {}  {}  {}  {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x], graph[3][x], graph[4][x])
-            guiones = '    '+'-'*16
+            guiones = '    '+'-'*16+'\n'
 
     ##Ahora hay que definir los nombres de las cuentas
+    for x in range(0, len(cuentas)):
+        len_c.append(len(cuentas[x]))
+    
+    for x in range(0, len(cuentas)):
+        nombre = ''
+        for y in range(0, len(cuentas[x])):
+            nombre += cuentas[x][y]
+        nombre += ' '*(max(len_c)-len(cuentas[x]))
+        nombre_c.append(nombre)
+
+    for x in range(0, max(len_c)):
+        if len(nombre_c) == 1:
+            lineas_c += '     {}\n'.format(nombre_c[0][x])
+        elif len(nombre_c) == 2:
+            lineas_c += '     {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x])
+        elif len(nombre_c) == 3:
+            lineas_c += '     {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x], nombre_c[2][x])
+        elif len(nombre_c) == 4:
+            lineas_c += '     {}  {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x], nombre_c[2][x], nombre_c[3][x])
+        elif len(nombre_c) == 5:          
+            lineas_c += '     {}  {}  {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x], nombre_c[2][x], nombre_c[3][x], nombre_c[4][x])
 
 
-
-    return print(title, lineas, guiones.rjust(10),  sep='')
-    #return print(cuentas)
+    return print(title, lineas, guiones.rjust(10), lineas_c,  sep='')
+    #return print(lineas_c)
 
 food = Category('food')
 clothes = Category('clothes')
