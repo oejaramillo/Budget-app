@@ -69,13 +69,26 @@ class Category:
 
 def create_spend_chart(categories):
     title = 'Percentage spent by category\n'
+    
     spent = []
-    numbers = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
     percentage = []
-    graph = ''
+    
+    numbers = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
+    graph = []
+    lineas = ''
+    
 
+    cuentas = []
+
+
+    
+
+
+
+    # Calculamos los porcentajes ####################
     for x in categories:
         withdraws = []
+        cuentas.append(x.name)
         for dic in x.ledger:
             clave_amount = list(dic.keys())[0]
             amount_values = dic[clave_amount]
@@ -89,13 +102,34 @@ def create_spend_chart(categories):
         calc = int(((x/sum(spent)*100) // 10)*10)
         percentage.append(calc)
 
-    ##Definimos la salida
+    ##Definimos la salida del gráfico###############
+    for x in range(0, len(percentage)):
+        spaces = ' '* (11 - int((percentage[x])/10)) + 'o'*int((percentage[x])/10)
+        graph.append(spaces)
+        
     for x in range(0, 11):
-        graph += '{}|          \n'.format(numbers[x]).rjust(10)
+        if len(graph) == 1:
+            lineas += '{}| {}\n'.format(str(numbers[x]).rjust(3), graph[0][x])
+            guiones = '    '+'-'*4
+        elif len(graph) == 2:
+            lineas += '{}| {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x])
+            guiones = '    '+'-'*7
+        elif len(graph) == 3:
+            lineas += '{}| {}  {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x])
+            guiones = '    '+'-'*10
+        elif len(graph) == 4:
+            lineas += '{}| {}  {}  {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x], graph[3][x])
+            guiones = '    '+'-'*13
+        elif len(graph) == 5:          
+            lineas += '{}| {}  {}  {}  {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x], graph[3][x], graph[4][x])
+            guiones = '    '+'-'*16
 
-    return print(title,graph, )
+    ##Ahora hay que definir los nombres de las cuentas
 
-    
+
+
+    return print(title, lineas, guiones.rjust(10),  sep='')
+    #return print(cuentas)
 
 food = Category('food')
 clothes = Category('clothes')
@@ -117,6 +151,7 @@ food.transfer(50.12, clothes)
 clothes.transfer(146.35, food)
 clothes.transfer(36.85, business)
 
+print(food)
 list_c = [food, clothes, business]
 
 create_spend_chart(list_c)
