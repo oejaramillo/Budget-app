@@ -83,11 +83,6 @@ def create_spend_chart(categories):
     nombre_c = []
     lineas_c = ''
 
-
-    
-
-
-
     # Calculamos los porcentajes ####################
     for x in categories:
         withdraws = []
@@ -151,12 +146,17 @@ def create_spend_chart(categories):
             lineas_c += '     {}  {}  {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x], nombre_c[2][x], nombre_c[3][x], nombre_c[4][x])
 
 
-    return print(title, lineas, guiones.rjust(10), lineas_c,  sep='')
-    #return print(lineas_c)
+    salida = '{}{}{}{}'.format(title, lineas, guiones.rjust(10), lineas_c)
+
+    return salida
 
 food = Category('food')
 clothes = Category('clothes')
 business = Category('business')
+entretainment = Category('entretainment')
+
+entretainment.deposit(800)
+entretainment.withdraw(300, 'prueba')
 
 food.deposit(100, 'ganancias de capital')
 clothes.deposit(500, 'donando por un senor')
@@ -168,6 +168,7 @@ food.withdraw(879.25, 'comida')
 food.withdraw(45.12, 'regalo')
 business.withdraw(9.65, 'perdido')
 clothes.withdraw(69.47, 'pantalon comprado')
+business.withdraw(50, 'pagos')
 
 food.transfer(100, business)
 food.transfer(50.12, clothes)
@@ -175,8 +176,8 @@ clothes.transfer(146.35, food)
 clothes.transfer(36.85, business)
 
 print(food)
-list_c = [food, clothes, business]
+list_c = [food, clothes, business, entretainment]
 
-create_spend_chart(list_c)
+print(create_spend_chart(list_c), end='')
 
 
