@@ -68,7 +68,7 @@ class Category:
 
 
 def create_spend_chart(categories):
-    title = 'Percentage spent by category\n'
+    title = ' Percentage spent by category\n'
     
     spent = []
     percentage = []
@@ -97,7 +97,7 @@ def create_spend_chart(categories):
         spent.append(sum(withdraws))
     
     for x in spent:
-        calc = int(((x/sum(spent)*100) // 10)*10)
+        calc = int(((x/sum(spent)*100) // 10)*10)+10
         percentage.append(calc)
 
     ##Definimos la salida del gráfico###############
@@ -146,38 +146,24 @@ def create_spend_chart(categories):
             lineas_c += '     {}  {}  {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x], nombre_c[2][x], nombre_c[3][x], nombre_c[4][x])
 
 
-    salida = '{}{}{}{}'.format(title, lineas, guiones.rjust(10), lineas_c)
+    salida = '{}{}{}{}'.format(title, lineas, guiones, lineas_c)
 
     return salida
 
 food = Category('food')
-clothes = Category('clothes')
 business = Category('business')
-entretainment = Category('entretainment')
+entertainment = Category('entretainment')
 
-entretainment.deposit(800)
-entretainment.withdraw(300, 'prueba')
+food.deposit(900, "deposit")
+entertainment.deposit(900, "deposit")
+business.deposit(900, "deposit")
+food.withdraw(105.55)
+entertainment.withdraw(33.40)
+business.withdraw(10.99)
 
-food.deposit(100, 'ganancias de capital')
-clothes.deposit(500, 'donando por un senor')
-business.deposit(98.25, 'ingesos por trabajo')
-food.deposit(78.65, 'encontrado')
-clothes.deposit(7821.36, 'encontrad')
+list_c = [business, food, entertainment]
+replit = 'Percentage spent by category\n100|          \n 90|          \n 80|          \n 70|    o     \n 60|    o     \n 50|    o     \n 40|    o     \n 30|    o     \n 20|    o  o  \n 10|    o  o  \n  0| o  o  o  \n    ----------\n     B  F  E  \n     u  o  n  \n     s  o  t  \n     i  d  e  \n     n     r  \n     e     t  \n     s     a  \n     s     i  \n           n  \n           m  \n           e  \n           n  \n           t  '
 
-food.withdraw(879.25, 'comida')
-food.withdraw(45.12, 'regalo')
-business.withdraw(9.65, 'perdido')
-clothes.withdraw(69.47, 'pantalon comprado')
-business.withdraw(50, 'pagos')
-
-food.transfer(100, business)
-food.transfer(50.12, clothes)
-clothes.transfer(146.35, food)
-clothes.transfer(36.85, business)
-
-print(food)
-list_c = [food, clothes, business, entretainment]
-
-print(create_spend_chart(list_c), end='')
+print(create_spend_chart(list_c))
 
 
