@@ -67,70 +67,122 @@ class Category:
         return '{}\n{}Total: {}'.format(cat_title, ledger_str, total)
 
 
+
 def create_spend_chart(categories):
-    title = 'Percentage spent by category\n'
-    spent = []
-    numbers = ['100', ' 90', ' 80', ' 70', ' 60', ' 50', ' 40', ' 30', ' 20', ' 10', '  0']
-    percentage = []
-    
-    lineas = []
-    graph = ''
+  title = 'Percentage spent by category\n'
 
-    cuentas = []
+  spent = []
+  percentage = []
 
-    # Calculamos el porcentaje en el formato pedido
-    for x in categories:
-        withdraws = []
-        for dic in x.ledger:
-            clave_amount = list(dic.keys())[0]
-            amount_values = dic[clave_amount]
+  numbers = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
+  graph = []
+  lineas = ''
 
-            if amount_values < 0:
-                withdraws.append(amount_values)
+  cuentas = []
+  len_c = []
+  nombre_c = []
+  lineas_c = ''
 
-        spent.append(sum(withdraws))
-    
-    for x in spent:
-        calc = int(((x/sum(spent)*100) // 10)*10)
-        percentage.append(calc)
+  # Calculamos los porcentajes ####################
+  for x in categories:
+    withdraws = []
+    cuentas.append(x.name)
+    for dic in x.ledger:
+      clave_amount = list(dic.keys())[0]
+      amount_values = dic[clave_amount]
 
-    # Defnimos las líneas en el formato pedido, las líneas son una lista de strings        
-    for y in range(0, 11):
-        lineas.append('{}| {}\n'.format(numbers[y]))
-        
-    # Hay que definir el segundo corchete que puede variar
-    for x in range(0, len(percentage)):
-            
-    # Se define el gráfico
-    for x in range(0, 11):
-        graph += '{}'.format(lineas[x])
-    
-    return print(lineas)
+      if amount_values < 0:
+        withdraws.append(amount_values)
+
+    spent.append(sum(withdraws))
+
+  for x in spent:
+    calc = int(((x / sum(spent) * 100) // 10) * 10)
+    percentage.append(calc)
+
+  ##Definimos la salida del gráfico###############
+  for x in range(0, len(percentage)):
+    spaces = ' ' * (11 - int((percentage[x]) / 10)) + 'o' * int(
+      (percentage[x]) / 10)
+    graph.append(spaces)
+
+  graph = graph[::-1]  # Reverse the graph list
+
+  for x in range(0, 11):
+    if len(graph) == 1:
+      lineas += '{}| {}\n'.format(str(numbers[x]).rjust(3), graph[0][x])
+      guiones = '    ' + '-' * 4 + '\n'
+    elif len(graph) == 2:
+      lineas += '{}| {}  {}\n'.format(
+        str(numbers[x]).rjust(3), graph[0][x], graph[1][x])
+      guiones = '    ' + '-' * 7 + '\n'
+    elif len(graph) == 3:
+      lineas += '{}| {}  {}  {}\n'.format(
+        str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x])
+      guiones = '    ' + '-' * 10 + '\n'
+    elif len(graph) == 4:
+      lineas += '{}| {}  {}  {}  {}\n'.format(
+        str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x],
+        graph[3][x])
+      guiones = '    ' + '-' * 13 + '\n'
+    elif len(graph) == 5:
+      lineas += '{}| {}  {}  {}  {}  {}\n'.format(
+        str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x],
+        graph[3][x], graph[4][x])
+      guiones = '    ' + '-' * 16 + '\n'
+
+  ##Ahora hay que definir los nombres de las cuentas
+  for x in range(0, len(cuentas)):
+    len_c.append(len(cuentas[x]))
+
+  for x in range(0, len(cuentas)):
+    nombre = ''
+    for y in range(0, len(cuentas[x])):
+      nombre += cuentas[x][y]
+    nombre += ' ' * (max(len_c) - len(cuentas[x]))
+    nombre_c.append(nombre)
+
+  for x in range(0, max(len_c)):
+    if len(nombre_c) == 1:
+      lineas_c += '     {}\n'.format(nombre_c[0][x])
+    elif len(nombre_c) == 2:
+      lineas_c += '     {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x])
+    elif len(nombre_c) == 3:
+      lineas_c += '     {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x],
+                                             nombre_c[2][x])
+    elif len(nombre_c) == 4:
+      lineas_c += '     {}  {}  {}  {}\n'.format(nombre_c[0][x],
+                                                 nombre_c[1][x],
+                                                 nombre_c[2][x],
+                                                 nombre_c[3][x])
+    elif len(nombre_c) == 5:
+      lineas_c += '     {}  {}  {}  {}  {}\n'.format(nombre_c[0][x],
+                                                     nombre_c[1][x],
+                                                     nombre_c[2][x],
+                                                     nombre_c[3][x],
+                                                     nombre_c[4][x])
+
+  salida = title + lineas + guiones + lineas_c
+
+  return salida
 
     
 
 food = Category('food')
-clothes = Category('clothes')
+entertainment = Category('entertainment')
 business = Category('business')
 
-food.deposit(100, 'ganancias de capital')
-clothes.deposit(500, 'donando por un senor')
-business.deposit(98.25, 'ingesos por trabajo')
-food.deposit(78.65, 'encontrado')
-clothes.deposit(7821.36, 'encontrad')
+food.deposit(900, "deposit")
+entertainment.deposit(900, "deposit")
+business.deposit(900, "deposit")
+food.withdraw(105.55)
+entertainment.withdraw(33.40)
+business.withdraw(10.99)
+list_c = [business, food, entertainment]
 
-food.withdraw(879.25, 'comida')
-food.withdraw(45.12, 'regalo')
-business.withdraw(9.65, 'perdido')
-clothes.withdraw(69.47, 'pantalon comprado')
+print(create_spend_chart(list_c))
 
-food.transfer(100, business)
-food.transfer(50.12, clothes)
-clothes.transfer(146.35, food)
-clothes.transfer(36.85, business)
-
-list_c = [food, clothes, business]
-
-create_spend_chart(list_c)
+replit = "Percentage spent by category\n100|          \n 90|          \n 80|          \n 70|    o     \n 60|    o     \n 50|    o     \n 40|    o     \n 30|    o     \n 20|    o  o  \n 10|    o  o  \n  0| o  o  o  \n    ----------\n     B  F  E  \n     u  o  n  \n     s  o  t  \n     i  d  e  \n     n     r  \n     e     t  \n     s     a  \n     s     i  \n           n  \n           m  \n           e  \n           n  \n           t  "
+print(replit)
 
 
