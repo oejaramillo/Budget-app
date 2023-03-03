@@ -68,7 +68,7 @@ class Category:
 
 
 def create_spend_chart(categories):
-    title = ' Percentage spent by category\n'
+    title = 'Percentage spent by category\n'
     
     spent = []
     percentage = []
@@ -165,5 +165,12 @@ list_c = [business, food, entertainment]
 replit = 'Percentage spent by category\n100|          \n 90|          \n 80|          \n 70|    o     \n 60|    o     \n 50|    o     \n 40|    o     \n 30|    o     \n 20|    o  o  \n 10|    o  o  \n  0| o  o  o  \n    ----------\n     B  F  E  \n     u  o  n  \n     s  o  t  \n     i  d  e  \n     n     r  \n     e     t  \n     s     a  \n     s     i  \n           n  \n           m  \n           e  \n           n  \n           t  '
 
 print(create_spend_chart(list_c))
+print(replit)
 
 
+pp = 'hola'
+oo = 'mundo'
+suma = pp + oo 
+
+
+print(suma)
