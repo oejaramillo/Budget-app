@@ -68,87 +68,49 @@ class Category:
 
 
 def create_spend_chart(categories):
-    title = 'Percentage spent by category\n'
-    
-    spent = []
-    percentage = []
-    
-    numbers = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
-    graph = []
-    lineas = ''
-    
+    spent = [sum([item['amount'] for item in category.ledger if item['amount'] < 0]) for category in categories]
+    total_spent = sum(spent)
+    percentages = [int(spent_category / total_spent * 10) * 10 for spent_category in spent]
+     
+    # Create chart lines
+    chart_lines = []
+    for i in range(100, -10, -10):
+        chart_line = "{:>3}| ".format(i)
+        for percentage in percentages:
+            if percentage >= i:
+                chart_line += "o  "
+            else:
+                chart_line += "   "
+        chart_lines.append(chart_line)
 
-    cuentas = []
-    len_c = []
-    nombre_c = []
-    lineas_c = ''
+    # Create category names and legend
+    category_names = [category.name for category in categories]
+    longest_name_length = max([len(name) for name in category_names])
+    category_names = [name.ljust(longest_name_length) for name in category_names]
 
-    # Calculamos los porcentajes ####################
-    for x in categories:
-        withdraws = []
-        cuentas.append(x.name)
-        for dic in x.ledger:
-            clave_amount = list(dic.keys())[0]
-            amount_values = dic[clave_amount]
+    category_legend_lines = []
+    for i in range(longest_name_length):
+        category_legend_line = "     "
+        for name in category_names:
+            if i < len(name):
+                category_legend_line += name[i] + "  "
+            else:
+                category_legend_line += "   "
+        category_legend_lines.append(category_legend_line)
 
-            if amount_values < 0:
-                withdraws.append(amount_values)
+    # Combine chart and legend
+    chart = "\n".join(chart_lines)
+    category_legend = "\n".join(category_legend_lines)
+    chart_with_legend = "{}\n{}\n{}\n{}\n".format(
+        "Percentage spent by category",
+        chart, "    " + "-" * (len(category_names) * 3 + 1),
+        category_legend
+    )
 
-        spent.append(sum(withdraws))
-    
-    for x in spent:
-        calc = int(((x/sum(spent)*100) // 10)*10)+10
-        percentage.append(calc)
-
-    ##Definimos la salida del gráfico###############
-    for x in range(0, len(percentage)):
-        spaces = ' '* (11 - int((percentage[x])/10)) + 'o'*int((percentage[x])/10)
-        graph.append(spaces)
-        
-    for x in range(0, 11):
-        if len(graph) == 1:
-            lineas += '{}| {}\n'.format(str(numbers[x]).rjust(3), graph[0][x])
-            guiones = '    '+'-'*4+'\n'
-        elif len(graph) == 2:
-            lineas += '{}| {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x])
-            guiones = '    '+'-'*7+'\n'
-        elif len(graph) == 3:
-            lineas += '{}| {}  {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x])
-            guiones = '    '+'-'*10+'\n'
-        elif len(graph) == 4:
-            lineas += '{}| {}  {}  {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x], graph[3][x])
-            guiones = '    '+'-'*13+'\n'
-        elif len(graph) == 5:          
-            lineas += '{}| {}  {}  {}  {}  {}\n'.format(str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x], graph[3][x], graph[4][x])
-            guiones = '    '+'-'*16+'\n'
-
-    ##Ahora hay que definir los nombres de las cuentas
-    for x in range(0, len(cuentas)):
-        len_c.append(len(cuentas[x]))
-    
-    for x in range(0, len(cuentas)):
-        nombre = ''
-        for y in range(0, len(cuentas[x])):
-            nombre += cuentas[x][y]
-        nombre += ' '*(max(len_c)-len(cuentas[x]))
-        nombre_c.append(nombre)
-
-    for x in range(0, max(len_c)):
-        if len(nombre_c) == 1:
-            lineas_c += '     {}\n'.format(nombre_c[0][x])
-        elif len(nombre_c) == 2:
-            lineas_c += '     {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x])
-        elif len(nombre_c) == 3:
-            lineas_c += '     {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x], nombre_c[2][x])
-        elif len(nombre_c) == 4:
-            lineas_c += '     {}  {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x], nombre_c[2][x], nombre_c[3][x])
-        elif len(nombre_c) == 5:          
-            lineas_c += '     {}  {}  {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x], nombre_c[2][x], nombre_c[3][x], nombre_c[4][x])
+    return chart_with_legend 
 
 
-    salida = '{}{}{}{}'.format(title, lineas, guiones, lineas_c)
 
-    return salida
 
 food = Category('food')
 business = Category('business')
@@ -166,11 +128,3 @@ replit = 'Percentage spent by category\n100|          \n 90|          \n 80|    
 
 print(create_spend_chart(list_c))
 print(replit)
-
-
-pp = 'hola'
-oo = 'mundo'
-suma = pp + oo 
-
-
-print(suma)
