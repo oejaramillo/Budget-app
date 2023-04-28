@@ -1,170 +1,102 @@
 class Category:
-    def __init__(self, name):
-        self.ledger = []
-        self.name = name
-        self.amount = 0
-        self.description = ''
 
-    def check_funds(self, amount):
-        if amount <= self.get_balance():
-            return True
-        else:
-            return False
+  def __init__(self, name):
+    self.ledger = []
+    self.name = name
+    self.amount = 0
+    self.description = ''
 
-    def get_balance(self):
-        total = 0
-        for dic in self.ledger:
-            clave_amount = list(dic.keys())[0]
-            amount_values = dic[clave_amount]
-            total += amount_values
+  def check_funds(self, amount):
+    if amount <= self.get_balance():
+      return True
+    else:
+      return False
 
-        return total
+  def get_balance(self):
+    total = 0
+    for dic in self.ledger:
+      clave_amount = list(dic.keys())[0]
+      amount_values = dic[clave_amount]
+      total += amount_values
 
-    def deposit(self, amount, description=''):
-        self.amount = float(amount)
-        self.description = description
-        self.ledger.append({'amount': self.amount, 'description': self.description})
+    return total
 
-    def withdraw(self, amount, description=''):
-        self.amount = float(amount) * -1
-        self.description = description
+  def deposit(self, amount, description=''):
+    self.amount = float(amount)
+    self.description = description
+    self.ledger.append({
+      'amount': self.amount,
+      'description': self.description
+    })
 
-        if self.check_funds(amount) == True:
-            self.ledger.append({'amount': self.amount, 'description': self.description})        
-            return True
-        else:
-            return False
+  def withdraw(self, amount, description=''):
+    self.amount = float(amount) * -1
+    self.description = description
 
-    def transfer(self, amount, other_category):
-        self.amount = float(amount)
+    if self.check_funds(amount) == True:
+      self.ledger.append({
+        'amount': self.amount,
+        'description': self.description
+      })
+      return True
+    else:
+      return False
 
-        if self.amount <= self.get_balance():
-            self.withdraw(self.amount, f'Transfer to {other_category.name}')
-            other_category.deposit(amount, f'Transfer from {self.name}')
+  def transfer(self, amount, other_category):
+    self.amount = float(amount)
 
-            return True
+    if self.amount <= self.get_balance():
+      self.withdraw(self.amount, f'Transfer to {other_category.name}')
+      other_category.deposit(amount, f'Transfer from {self.name}')
 
-        else:
-            return False
-            
-    def __str__(self):
-        title_pos = 15-len(self.name)//2
-        f_asterics = '*' * int(title_pos)
-        b_asterics = '*' * (int(title_pos)-1)
+      return True
 
-        if len(self.name) % 2 == 0:
-            cat_title = f'{f_asterics}{self.name}{f_asterics}'
-        else:
-            cat_title = f'{f_asterics}{self.name}{b_asterics}'
+    else:
+      return False
 
-        ledger_str = ''
-        for item in self.ledger:
-            description = item['description'][:23].ljust(23)
-            amount = '{:.2f}'.format(item['amount'])[:7].rjust(7)
-            ledger_str += '{}{}\n'.format(description, amount)
+  def __str__(self):
+    title_pos = 15 - len(self.name) // 2
+    f_asterics = '*' * int(title_pos)
+    b_asterics = '*' * (int(title_pos) - 1)
 
-        total = '{:.2f}'.format(self.get_balance())
-        return '{}\n{}Total: {}'.format(cat_title, ledger_str, total)
+    if len(self.name) % 2 == 0:
+      cat_title = f'{f_asterics}{self.name}{f_asterics}'
+    else:
+      cat_title = f'{f_asterics}{self.name}{b_asterics}'
 
+    ledger_str = ''
+    for item in self.ledger:
+      description = item['description'][:23].ljust(23)
+      amount = '{:.2f}'.format(item['amount'])[:7].rjust(7)
+      ledger_str += '{}{}\n'.format(description, amount)
+
+    total = '{:.2f}'.format(self.get_balance())
+    return '{}\n{}Total: {}'.format(cat_title, ledger_str, total)
 
 
 def create_spend_chart(categories):
-  title = 'Percentage spent by category\n'
+    total_spent = [sum(t["amount"] for t in c.ledger if t["amount"] < 0) for c in categories]
+    total = sum(total_spent)
+    percentages = [round((s / total) * 100) // 10 * 10 for s in total_spent]
 
-  spent = []
-  percentage = []
+    chart_lines = []
+    for i in range(100, -10, -10):
+        chart_line = f"{i:3}|"
+        for p in percentages:
+            chart_line += " o " if p >= i else "   "
+        chart_lines.append(chart_line + " ")
 
-  numbers = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
-  graph = []
-  lineas = ''
+    longest_name = max(len(c.name) for c in categories)
+    category_names = [" " * 5 + "".join(c.name[i].ljust(3) if i < len(c.name) else "   " for c in categories) for i in range(longest_name)]
 
-  cuentas = []
-  len_c = []
-  nombre_c = []
-  lineas_c = ''
+    chart = "Percentage spent by category\n"
+    chart += "\n".join(chart_lines)
+    chart += "\n    " + "-" * (len(categories) * 3 + 1)
+    chart += "\n" + "\n".join(category_names)
 
-  # Calculamos los porcentajes ####################
-  for x in categories:
-    withdraws = []
-    cuentas.append(x.name)
-    for dic in x.ledger:
-      clave_amount = list(dic.keys())[0]
-      amount_values = dic[clave_amount]
+    return chart
 
-      if amount_values < 0:
-        withdraws.append(amount_values)
 
-    spent.append(sum(withdraws))
-
-  for x in spent:
-    calc = int(((x / sum(spent) * 100) // 10) * 10)
-    percentage.append(calc)
-
-  ##Definimos la salida del gráfico###############
-  for x in range(0, len(percentage)):
-    spaces = ' ' * (11 - int((percentage[x]) / 10)) + 'o' * int(
-      (percentage[x]) / 10)
-    graph.append(spaces)
-
-  graph = graph[::-1]  # Reverse the graph list
-
-  for x in range(0, 11):
-    if len(graph) == 1:
-      lineas += '{}| {}\n'.format(str(numbers[x]).rjust(3), graph[0][x])
-      guiones = '    ' + '-' * 4 + '\n'
-    elif len(graph) == 2:
-      lineas += '{}| {}  {}\n'.format(
-        str(numbers[x]).rjust(3), graph[0][x], graph[1][x])
-      guiones = '    ' + '-' * 7 + '\n'
-    elif len(graph) == 3:
-      lineas += '{}| {}  {}  {}\n'.format(
-        str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x])
-      guiones = '    ' + '-' * 10 + '\n'
-    elif len(graph) == 4:
-      lineas += '{}| {}  {}  {}  {}\n'.format(
-        str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x],
-        graph[3][x])
-      guiones = '    ' + '-' * 13 + '\n'
-    elif len(graph) == 5:
-      lineas += '{}| {}  {}  {}  {}  {}\n'.format(
-        str(numbers[x]).rjust(3), graph[0][x], graph[1][x], graph[2][x],
-        graph[3][x], graph[4][x])
-      guiones = '    ' + '-' * 16 + '\n'
-
-  ##Ahora hay que definir los nombres de las cuentas
-  for x in range(0, len(cuentas)):
-    len_c.append(len(cuentas[x]))
-
-  for x in range(0, len(cuentas)):
-    nombre = ''
-    for y in range(0, len(cuentas[x])):
-      nombre += cuentas[x][y]
-    nombre += ' ' * (max(len_c) - len(cuentas[x]))
-    nombre_c.append(nombre)
-
-  for x in range(0, max(len_c)):
-    if len(nombre_c) == 1:
-      lineas_c += '     {}\n'.format(nombre_c[0][x])
-    elif len(nombre_c) == 2:
-      lineas_c += '     {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x])
-    elif len(nombre_c) == 3:
-      lineas_c += '     {}  {}  {}\n'.format(nombre_c[0][x], nombre_c[1][x],
-                                             nombre_c[2][x])
-    elif len(nombre_c) == 4:
-      lineas_c += '     {}  {}  {}  {}\n'.format(nombre_c[0][x],
-                                                 nombre_c[1][x],
-                                                 nombre_c[2][x],
-                                                 nombre_c[3][x])
-    elif len(nombre_c) == 5:
-      lineas_c += '     {}  {}  {}  {}  {}\n'.format(nombre_c[0][x],
-                                                     nombre_c[1][x],
-                                                     nombre_c[2][x],
-                                                     nombre_c[3][x],
-                                                     nombre_c[4][x])
-
-  salida = title + lineas + guiones + lineas_c
-
-  return salida
 
     
 
