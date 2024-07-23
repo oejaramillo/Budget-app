@@ -1,4 +1,4 @@
-from src import db, app
+from .app import db, app
 
 def init_db():
     with app.app_context():
