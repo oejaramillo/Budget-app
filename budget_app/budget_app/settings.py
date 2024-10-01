@@ -78,8 +78,12 @@ WSGI_APPLICATION = 'budget_app.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'budget_db',
+        'USER': 'edu',
+        'PASSWORD': 'tqfBKx9eCq7M',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
