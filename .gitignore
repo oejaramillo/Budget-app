@@ -1,2 +1,18 @@
+# Ignore Python cache files
+**/__pycache__/
+**/*.py[cod]
+
+# Ignore Django migrations
+migrations/
+*/migrations/
+*/__pycache__/
+
+# Ignore specific files
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Ignore environment files
 amb
-budget_app/budget_app/settings.py
+.env
