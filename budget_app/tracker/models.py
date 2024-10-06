@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 
 class Currencies(models.Model):
     name = models.CharField(max_length=100)
@@ -108,3 +109,31 @@ class AccountBudget(models.Model):
     # Enforcing that a single account can't be linked to the same budget more than once
     class Meta:
         unique_together = ('budget', 'account')  # Ensure no duplicate links between account and budget
+
+
+# Thinks to consider at future
+# Global vs User-specific Principal Currencies: we might want to allow each user to have their own principal currency
+# add a user ForeignKey in the Currencies model and adjust the unique constraint to enforce principal currency per user.
+
+#class Currencies(models.Model):
+#    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Add user if principal is user-specific
+#   
+#    class Meta:
+#        constraints = [
+#            models.UniqueConstraint(fields=['user', 'principal'], condition=models.Q(principal=True), name='unique_principal_currency_per_user')
+#        ]
+
+# Amount Validation in Transactions: we could add model-level validation to ensure the amount is positive for certain transaction types 
+# (income and expense)
+
+# class Transactions(models.Model):
+
+#    def clean(self):
+#        if self.transaction_type in ['income', 'expense'] and self.amount < 0:
+#            raise ValidationError(f"Amount for {self.transaction_type} must be positive.")
+
+# Historical Records: if we want to allow deletion of related models could be useful to keep a full audit trail for financial compliance. 
+# If so, there is a Django's soft delete approach instead of on_delete behaviors like CASCADE. Alternatively, there is Django’s built-in logging or auditing tools.
+
+# Transaction Type Expansion: If the application evolves and needs more complex transaction types (e.g., recurring transactions or custom transaction types),
+# we might want to abstract the TRANSACTION_TYPES into a separate model to allow for future flexibility.
