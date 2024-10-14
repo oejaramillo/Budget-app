@@ -1,5 +1,8 @@
 from django.shortcuts import render
 from rest_framework import viewsets, filters, status
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from .models import Currencies, Accounts, Budgets, Categories, Transactions, AccountBudget
 from .serializers import (
     CurrenciesSerializer, AccountsSerializer, BudgetsSerializer, 
@@ -7,11 +10,11 @@ from .serializers import (
     AccountBudgetSerializer, CustomTokenObtainPairSerializer,
 )
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenVerifyView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from rest_framework_simplejwt.exceptions import TokenError
+
+
 
 class CurrencyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Currencies.objects.all()
@@ -92,3 +95,10 @@ class LogoutView(APIView):
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+class CustomTokenVerifyView(TokenVerifyView):
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except TokenError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
