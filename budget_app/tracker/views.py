@@ -7,7 +7,7 @@ from .models import Currencies, Accounts, Budgets, Categories, Transactions, Acc
 from .serializers import (
     CurrenciesSerializer, AccountsSerializer, BudgetsSerializer, 
     CategoriesSerializer, TransactionsSerializer, 
-    AccountBudgetSerializer, CustomTokenObtainPairSerializer,
+    AccountBudgetSerializer
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenVerifyView
@@ -76,10 +76,7 @@ class AccountBudgetViewSet(viewsets.ModelViewSet):
         return AccountBudget.objects.filter(account__user=self.request.user, budget__user=self.request.user).select_related('account', 'budget')
 
 
-## auth custom view
-
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
+## auth 
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
