@@ -1,7 +1,5 @@
 from rest_framework import serializers
-from rest_framework_simplejwt.tokens import Token
 from .models import  Currencies, Accounts, Budgets, Categories, Transactions, AccountBudget
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class CurrenciesSerializer(serializers.ModelSerializer):
     formatted_exchange_rate = serializers.SerializerMethodField()
@@ -98,16 +96,3 @@ class AccountBudgetSerializer(serializers.ModelSerializer):
         if AccountBudget.objects.filter(budget=data['budget'], account=data['account']).exists():
             raise serializers.ValidationError("This account is already linked to this budget.")
         return data
-    
-    ## For auth we define a custom serializer
-
-    class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-        @classmethod
-        def get_token(cls, user):
-            token = super().get_token(user)
-
-            # custom claims
-            token['email'] = user.email
-            token['role'] = user.profile.role
-
-            return token
