@@ -12,6 +12,7 @@ migrations/
 *.pyo
 *.pyd
 *.sqlite3
+database.py
 
 # Ignore environment files
 amb
