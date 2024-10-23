@@ -1,9 +1,20 @@
 from django.shortcuts import render
-from rest_framework import viewsets, filters
-from .models import Currencies, Accounts, Budgets, Categories, Transactions, AccountBudget
-from .serializers import CurrenciesSerializer, AccountsSerializer, BudgetsSerializer, CategoriesSerializer, TransactionsSerializer, AccountBudgetSerializer
-from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, filters, status
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import Currencies, Accounts, Budgets, Categories, Transactions, AccountBudget
+from .serializers import (
+    CurrenciesSerializer, AccountsSerializer, BudgetsSerializer, 
+    CategoriesSerializer, TransactionsSerializer, 
+    AccountBudgetSerializer
+)
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenVerifyView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+
+
 
 class CurrencyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Currencies.objects.all()
@@ -64,3 +75,27 @@ class AccountBudgetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return AccountBudget.objects.filter(account__user=self.request.user, budget__user=self.request.user).select_related('account', 'budget')
 
+
+## auth 
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # get the refresh token
+            refresh_token = request.data["refresh"]
+            # blacklist the token
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+class CustomTokenVerifyView(TokenVerifyView):
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except TokenError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
