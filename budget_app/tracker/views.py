@@ -33,6 +33,9 @@ class AccountViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Accounts.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class BudgetViewSet(viewsets.ModelViewSet):
     serializer_class = BudgetsSerializer
@@ -44,6 +47,9 @@ class BudgetViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Budgets.objects.filter(user=self.request.user).select_related('currency')
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategoriesSerializer
@@ -53,6 +59,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Categories.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionsSerializer
@@ -66,6 +75,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Transactions.objects.filter(user=self.request.user).select_related('account', 'category', 'budget', 'currency')
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class AccountBudgetViewSet(viewsets.ModelViewSet):
     queryset = AccountBudget.objects.all()
@@ -74,6 +86,9 @@ class AccountBudgetViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return AccountBudget.objects.filter(account__user=self.request.user, budget__user=self.request.user).select_related('account', 'budget')
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 ## auth 
