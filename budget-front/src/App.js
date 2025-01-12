@@ -1,29 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
 
-const App = () => {
-  const [accounts, setAccounts] = useState([]);
-
-  useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/v1/accounts/')
-    .then(response => {
-      setAccounts(response.data);
-    })
-    .catch(error => {
-      console.error("There was an error fetching the accounts", error);
-    });
-  }, []);
-  
+function App() {
   return (
-    <div>
-      <h1>Cuentas</h1>
-      <ul>
-        {accounts.map(account => (
-          <li key={account.id}>{account.name} - {account.balance}</li>
-        ))}
-      </ul>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+      </Routes>
+    </Router>
   );
-};
+}
 
 export default App;
