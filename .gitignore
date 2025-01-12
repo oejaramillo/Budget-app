@@ -13,6 +13,7 @@ migrations/
 *.pyd
 *.sqlite3
 database.py
+*.ipynb
 
 # Ignore environment files
 amb
