@@ -21,5 +21,5 @@ urlpatterns = [
     path('api/v1/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v1/auth/token/verify/', CustomTokenVerifyView.as_view(), name='token_verify'),
     path('api/v1/auth/logout', LogoutView.as_view(), name='logout'),
-    path('login/', LoginView.as_view(), name='login'),
+    path('api/login/', LoginView.as_view(), name='login'),
 ]

@@ -9,6 +9,7 @@ const Home = () => {
   
     const handleSubmit = async (e) => {
       e.preventDefault();
+      setMessage("");
       try {
         const response = await axios.post("http://localhost:8000/api/login/", {
           username,
@@ -16,9 +17,18 @@ const Home = () => {
         });
         setMessage("Login successful!");
         console.log("Token:", response.data.token);
+        
         // Save token in localStorage or manage state
+        localStorage.setItem("authtoken", response.data.token);
+
+        // Redirect user
+        window.location.href = "/dashboard";
       } catch (error) {
-        setMessage("Invalid credentials, please try again.");
+        if (error.response && error.response.status == 400) {
+          setMessage("Invalid credentials, please try again.");
+        } else {
+          setMessage("Something went wrong, please try again later.");
+        }
       }
     };
 
