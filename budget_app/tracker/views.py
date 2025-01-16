@@ -10,12 +10,16 @@ from .serializers import (
     AccountBudgetSerializer
 )
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenVerifyView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework.authtoken.models import Token
 
 
-
+## DATABASE views
 class CurrencyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Currencies.objects.all()
     serializer_class = CurrenciesSerializer
@@ -33,6 +37,9 @@ class AccountViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Accounts.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class BudgetViewSet(viewsets.ModelViewSet):
     serializer_class = BudgetsSerializer
@@ -44,6 +51,9 @@ class BudgetViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Budgets.objects.filter(user=self.request.user).select_related('currency')
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategoriesSerializer
@@ -53,6 +63,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Categories.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionsSerializer
@@ -66,6 +79,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Transactions.objects.filter(user=self.request.user).select_related('account', 'category', 'budget', 'currency')
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class AccountBudgetViewSet(viewsets.ModelViewSet):
     queryset = AccountBudget.objects.all()
@@ -74,9 +90,25 @@ class AccountBudgetViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return AccountBudget.objects.filter(account__user=self.request.user, budget__user=self.request.user).select_related('account', 'budget')
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 ## auth 
+class LoginView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = authenticate(username=username, password=password)
+
+        if user is not None:
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({"token": token.key, "message": "Login succesful"}, status=status.HTTP_200_OK)
+        return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
