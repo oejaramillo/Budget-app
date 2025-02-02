@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import "./Home.css";
+import "/home/edu/edu/repositorios/Budget-app/budget-front/src/styles/Home.css";
 
 const Home = () => {
     const [username, setUsername] = useState("");
