@@ -2,6 +2,7 @@ import React from "react";
 import { Box } from "@mui/material";
 import NavBar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+import "/home/edu/edu/repositorios/Budget-app/budget-front/src/styles/dashboard.css";
 
 const Dashboard = () => {
     const handleLogout = () => {
