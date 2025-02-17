@@ -1,27 +1,30 @@
 import React from "react";
-import { Box } from "@mui/material";
+import { Grid, Box } from "@mui/material";
 import NavBar from "../components/Navbar";
-import Sidebar from "../components/Sidebar";
-import "/home/edu/edu/repositorios/Budget-app/budget-front/src/styles/dashboard.css";
+import BalanceCards from "../components/BalanceCards";
+import IncomeExpenseChart from "../components/IncomeExpenseChart";
+import ExpenseBreakdown from "../components/ExpenseBreakdown";
+import "../styles/dashboard.css";
 
 const Dashboard = () => {
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        window.location.href = "/";
-    }
-
-    return (
-        <Box sx={{ display: "flex" }}>
-            <Sidebar />
-            <Box sx={{ flexGrow: 1 }}>
-                <NavBar onLogout={handleLogout} />
-                <Box sx={{ padding: 3 }}>
-                    <h2>Bienvenido a tu tablero</h2>
-                    <p>Aquí encontrarás información sobre tus entradas, cuentas y Presupuestos</p>
-                </Box>
-            </Box>
-        </Box>
-    );
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      <NavBar />
+      <Box sx={{ padding: 3 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={3}>
+            <BalanceCards />
+          </Grid>
+          <Grid item xs={12} md={9}>
+            <IncomeExpenseChart />
+          </Grid>
+          <Grid item xs={12}>
+            <ExpenseBreakdown />
+          </Grid>
+        </Grid>
+      </Box>
+    </Box>
+  );
 };
 
 export default Dashboard;
