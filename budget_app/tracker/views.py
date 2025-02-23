@@ -17,6 +17,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenVerifyView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view, permission_classes
 
 
 ## DATABASE views
@@ -94,20 +95,21 @@ class AccountBudgetViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
 ## auth 
-class LoginView(APIView):
-    authentication_classes = []
-    permission_classes = []
-
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
+class CustomLoginView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        username = request.data.get("username")
+        password = request.data.get("password")
         user = authenticate(username=username, password=password)
 
         if user is not None:
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({"token": token.key, "message": "Login succesful"}, status=status.HTTP_200_OK)
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "access": str(refresh.access_token),  # Access Token
+                "refresh": str(refresh),  # Refresh Token
+                "message": "Login successful"
+            }, status=status.HTTP_200_OK)
+
         return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutView(APIView):
@@ -131,3 +133,14 @@ class CustomTokenVerifyView(TokenVerifyView):
             return super().post(request, *args, **kwargs)
         except TokenError as e:
             return Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+## API views
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_balance(request):
+    accounts = Accounts.objects.filter(user=request.user)
+    total_balance = sum(account.balance for account in accounts)
+
+    return Response({
+        "totalBalance": total_balance
+    })

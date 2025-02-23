@@ -10,27 +10,34 @@ const Home = () => {
     const handleSubmit = async (e) => {
       e.preventDefault();
       setMessage("");
+  
       try {
-        const response = await axios.post("http://localhost:8000/api/login/", {
-          username,
-          password,
-        });
-        setMessage("Login successful!");
-        console.log("Token:", response.data.token);
-        
-        // Save token in localStorage or manage state
-        localStorage.setItem("authtoken", response.data.token);
-
-        // Redirect user
-        window.location.href = "/dashboard";
+          const response = await fetch("http://127.0.0.1:8000/api/v1/auth/token/", {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ username, password }),
+          });
+  
+          const data = await response.json();
+  
+          if (response.ok) {
+              console.log("Access Token:", data.access);
+              console.log("Refresh Token:", data.refresh);
+              
+              localStorage.setItem("access_token", data.access);
+              localStorage.setItem("refresh_token", data.refresh);
+  
+              window.location.href = "/dashboard";
+          } else {
+              setMessage("Invalid credentials, please try again.");
+          }
       } catch (error) {
-        if (error.response && error.response.status == 400) {
-          setMessage("Invalid credentials, please try again.");
-        } else {
           setMessage("Something went wrong, please try again later.");
-        }
       }
-    };
+  };
+  
 
     return (
         <div className="home-container">
