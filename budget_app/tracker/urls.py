@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     CurrencyViewSet, AccountViewSet, BudgetViewSet, 
     CategoryViewSet, TransactionViewSet, AccountBudgetViewSet,
-    CustomLoginView, LogoutView, CustomTokenVerifyView, get_balance
+    CustomLoginView, LogoutView, CustomTokenVerifyView, 
+    get_total_balance, get_balance, get_user_accounts
 )
 from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 
@@ -22,5 +23,10 @@ urlpatterns = [
     path('api/v1/auth/token/verify/', CustomTokenVerifyView.as_view(), name='token_verify'),
     path('api/v1/auth/logout', LogoutView.as_view(), name='logout'),
     path('api/v1/auth/token/', CustomLoginView.as_view(), name='token_obtain_pair'),
-    path('api/v1/dashboard/balances/', get_balance, name='dashboard-balances')
+    
+    path('api/v1/accounts/', get_user_accounts, name='get-user-accounts'),
+
+    path('api/v1/dashboard/total_balance/', get_total_balance, name='dashboard-balances'),
+    path('api/v1/accounts/balance/<str:account_name>/', get_balance, name='get-account-balance'),
+
 ]

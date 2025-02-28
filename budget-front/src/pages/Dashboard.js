@@ -1,28 +1,34 @@
 import React from "react";
 import { Grid, Box } from "@mui/material";
 import NavBar from "../components/Navbar";
-import BalanceCards from "../components/BalanceCards";
+import TotalBalanceCard from "../components/TotalBalanceCard";
+import BalanceCard from "../components/BalanceCard";
 import IncomeExpenseChart from "../components/IncomeExpenseChart";
 import ExpenseBreakdown from "../components/ExpenseBreakdown";
 import "../styles/dashboard.css";
 
 const Dashboard = () => {
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1, padding: 3 }}>
       <NavBar />
-      <Box sx={{ padding: 3 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={3}>
-            <BalanceCards />
-          </Grid>
-          <Grid item xs={12} md={9}>
-            <IncomeExpenseChart />
-          </Grid>
-          <Grid item xs={12}>
-            <ExpenseBreakdown />
-          </Grid>
+      
+      <Grid container spacing={3} alignItems="center">
+        {/* Left Side - Balance & Account Selector */}
+        <Grid item xs={12} md={4} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <TotalBalanceCard />
+          <BalanceCard />
         </Grid>
-      </Box>
+
+        {/* Right Side - Charts */}
+        <Grid item xs={12} md={8}>
+          <IncomeExpenseChart />
+        </Grid>
+
+        {/* Full Width - Expense Breakdown */}
+        <Grid item xs={12}>
+          <ExpenseBreakdown />
+        </Grid>
+      </Grid>
     </Box>
   );
 };

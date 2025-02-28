@@ -137,10 +137,62 @@ class CustomTokenVerifyView(TokenVerifyView):
 ## API views
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_balance(request):
-    accounts = Accounts.objects.filter(user=request.user)
-    total_balance = sum(account.balance for account in accounts)
+def get_user_accounts(request):
+    try:
+        # Get all accounts belonging to the authenticated user
+        accounts = Accounts.objects.filter(user=request.user)
 
-    return Response({
-        "totalBalance": total_balance
-    })
+        if not accounts.exists():
+            return Response({"message": "No accounts found"}, status=404)
+
+        # Serialize the accounts data
+        serializer = AccountsSerializer(accounts, many=True)
+
+        return Response(serializer.data, status=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_total_balance(request):
+    try:
+        accounts = Accounts.objects.filter(user=request.user)
+
+        if not accounts.exists():
+            return Response({"message": "No accounts found"}, status=404)
+
+        total_balance = sum(account.balance for account in accounts)
+        
+        return Response({
+            "totalBalance": total_balance
+        })
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_balance(request, account_name):
+    try:
+        # Ensure account name is properly formatted in case of special characters
+        account_name = account_name.strip()
+
+        # Fetch only one matching account for the authenticated user
+        account = Accounts.objects.filter(user=request.user, name__iexact=account_name).first()
+
+        if not account:
+            return Response({"error": "Account not found"}, status=404)
+        
+        return Response({
+            "accountName": account.name,
+            "accountBalance": account.balance,
+            "currency": account.currency.code
+        })
+    
+    except Exception as e:
+        print(f"Error fetching balance for {account_name}: {e}")  # ✅ Logs error for debugging
+        return Response({"error": str(e)}, status=500)
+
+
