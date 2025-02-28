@@ -18,3 +18,5 @@ database.py
 # Ignore environment files
 amb
 .env
+
+api
