@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Grid, Paper, Typography } from "@mui/material";
+import { Grid2, Paper, Typography } from "@mui/material";
 import "../styles/dashboard.css";
 
-const BalanceCards = () => {
+const TotalBalanceCard = () => {
   const [balances, setBalances] = useState({
-    total: 0,
-    bank: 0,
-    cash: 0,
+    total: 0
   });
 
   // Token management
@@ -38,7 +36,7 @@ const BalanceCards = () => {
     let token = localStorage.getItem("access_token");
 
     const fetchData = async (token) => {
-      return fetch("http://127.0.0.1:8000/api/v1/dashboard/balances/", {
+      return fetch("http://127.0.0.1:8000/api/v1/dashboard/total_balance/", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -59,9 +57,7 @@ const BalanceCards = () => {
     if (response.ok) {
       const data = await response.json();
       setBalances({
-        total: data.totalBalance,
-        bank: data.totalBalance,  
-        cash: data.totalBalance,  
+        total: data.totalBalance  
       });
     } else {
       console.error("Error fetching balance data:", response.status);
@@ -83,27 +79,15 @@ const BalanceCards = () => {
   };
 
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
+    <Grid2 container spacing={3}>
+      <Grid2 item xs={12}>
         <Paper style={cardStyle}>
           <Typography variant="h5" color="primary">${balances.total.toLocaleString()}</Typography>
           <Typography variant="subtitle1">Balance Total</Typography>
         </Paper>
-      </Grid>
-      <Grid item xs={6}>
-        <Paper style={cardStyle}>
-          <Typography variant="h5" color="primary">${balances.bank.toLocaleString()}</Typography>
-          <Typography variant="subtitle1">Balance Banco</Typography>
-        </Paper>
-      </Grid>
-      <Grid item xs={6}>
-        <Paper style={cardStyle}>
-          <Typography variant="h5" color="primary">${balances.cash.toLocaleString()}</Typography>
-          <Typography variant="subtitle1">Balance Efectivo</Typography>
-        </Paper>
-      </Grid>
-    </Grid>
+      </Grid2>
+    </Grid2>
   );
 };
 
-export default BalanceCards;
+export default TotalBalanceCard;
