@@ -66,7 +66,7 @@ class Budgets(models.Model):
 class Categories(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)  # Added user reference for multi-user systems
     name = models.CharField(max_length=100)
-    budget = models.ForeignKey(Budgets, on_delete=models.CASCADE)
+    budget = models.ForeignKey(Budgets, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
