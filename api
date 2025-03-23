@@ -1,1 +1,0 @@
-curl -H "Authorization: Bearer 70676eed7153414649d891dd036a693f6d3d010b" http://127.0.0.1:8000/api/v1/accounts/
