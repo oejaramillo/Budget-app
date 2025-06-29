@@ -1,5 +1,14 @@
+import React from "react";
+import Transactions from "../components/Transactions";
+import Accounts from "../components/Accounts";
+import Currencies from "../components/Currencies";
+
 function Home() {
-    return <div>Home</div>
+  return (
+    <div>
+      <Currencies />
+    </div>
+  );
 }
 
-export default Home
+export default Home;
