@@ -19,13 +19,12 @@ function Form({route, method}) {
         try {
             const res = await api.post(route, { username, password });
             if (method === "login") {
-                localStorage.setItem(ACCESS_TOKEN, res.data.accessToken);
-                localStorage.setItem(REFRESH_TOKEN, res.data.refreshToken);
+                localStorage.setItem(ACCESS_TOKEN, res.data.access);
+                localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
                 navigate("/")
             } else {
                 navigate("/login")
             }
-
         } catch (error) {
             alert(error);
         } finally {
@@ -34,7 +33,7 @@ function Form({route, method}) {
             
     }
 
-    return <form onSubmit={handleSubmit}>
+    return <form onSubmit={handleSubmit} className="form-container">
         <h1>{name}</h1>
         <input 
             className="form-input"
