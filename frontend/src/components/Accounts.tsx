@@ -99,25 +99,40 @@ const Accounts: React.FC = () => {
   return (
     <div>
       <h2>Accounts</h2>
-      {accounts.length === 0 && <p>No accounts found.</p>}
-      {accounts.map((acc) => (
-        <div
-          key={acc.id}
-          style={{
-            border: "1px solid #ccc",
-            padding: "1rem",
-            marginBottom: "1rem",
-          }}
-        >
-          <p><strong>{acc.name}</strong></p>
-          <p>Type: {acc.account_type}</p>
-          <p>Balance: {acc.balance}</p>
-          <p>Currency ID: {acc.currency}</p>
-          {acc.institution && <p>Institution: {acc.institution}</p>}
-          {acc.official_number && <p>Official #: {acc.official_number}</p>}
-          <button onClick={() => deleteAccount(acc.id)}>Delete</button>
-        </div>
-      ))}
+            {accounts.length === 0 && <p>No accounts found.</p>}
+            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "2rem" }}>
+        <thead>
+          <tr>
+            <th style={{ border: "1px solid #ccc", padding: "0.5rem" }}>Name</th>
+            <th style={{ border: "1px solid #ccc", padding: "0.5rem" }}>Type</th>
+            <th style={{ border: "1px solid #ccc", padding: "0.5rem" }}>Balance</th>
+            <th style={{ border: "1px solid #ccc", padding: "0.5rem" }}>Currency</th>
+            <th style={{ border: "1px solid #ccc", padding: "0.5rem" }}>Institution</th>
+            <th style={{ border: "1px solid #ccc", padding: "0.5rem" }}>Official Number</th>
+            <th style={{ border: "1px solid #ccc", padding: "0.5rem" }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {accounts.map((acc) => (
+            <tr key={acc.id}>
+              <td style={{ border: "1px solid #ccc", padding: "0.5rem" }}>{acc.name}</td>
+              <td style={{ border: "1px solid #ccc", padding: "0.5rem" }}>{acc.account_type}</td>
+              <td style={{ border: "1px solid #ccc", padding: "0.5rem" }}>{acc.balance}</td>
+              <td style={{ border: "1px solid #ccc", padding: "0.5rem" }}>
+                {
+                  currencies.find((c) => c.id === acc.currency)?.code || acc.currency
+                }
+              </td>
+              <td style={{ border: "1px solid #ccc", padding: "0.5rem" }}>{acc.institution || "—"}</td>
+              <td style={{ border: "1px solid #ccc", padding: "0.5rem" }}>{acc.official_number || "—"}</td>
+              <td style={{ border: "1px solid #ccc", padding: "0.5rem" }}>
+                <button onClick={() => deleteAccount(acc.id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
 
       <h2>Create New Account</h2>
       <form onSubmit={createAccount}>
