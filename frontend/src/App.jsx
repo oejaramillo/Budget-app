@@ -1,43 +1,65 @@
-import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { AuthProvider, useAuthContext } from './hooks/useAuth';
+import Home from './pages/Home';
+import LandingPage from './components/auth/LandingPage';
+import './styles/globals.css';
 
-import Login from './pages/Login'
-import Home from './pages/Home'
-import Register from './pages/Register'
-import NotFound from './pages/NotFound'
+const queryClient = new QueryClient();
 
-import ProtectedRoute from './components/ProtectedRoute'
+// Main App Content Component
+const AppContent = () => {
+  const { isAuthenticated, isLoading } = useAuthContext();
 
-function Logout() {
-  localStorage.clear()
-  return <Navigate to="/login" />
-}
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: 'linear-gradient(135deg, #8ecae6 0%, #219ebc 100%)',
+        color: 'white',
+        fontSize: '1.2rem',
+        fontFamily: 'var(--font-body)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid rgba(255, 255, 255, 0.3)',
+            borderTop: '4px solid white',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem'
+          }}></div>
+          Cargando FinanceApp...
+        </div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
-function RegisterAndLogout() {
-  localStorage.clear()
-  return <Register />
-}
+  return isAuthenticated ? <Home /> : <LandingPage />;
+};
 
 function App() {
-
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-        <Route path='/login' element={<Login />} />
-        <Route path='/logout' element={<Logout />} />
-        <Route path='/register' element={<RegisterAndLogout />} />
-        <Route path='*' element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
-  )
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <div className="App">
+          <AppContent />
+        </div>
+        <ReactQueryDevtools initialIsOpen={false} />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
 }
 
-export default App
+export default App;

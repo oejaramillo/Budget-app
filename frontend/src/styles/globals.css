@@ -1,0 +1,150 @@
+/* Global Styles - Personal Finance App */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  /* Color Palette */
+  --sky-blue: #8ecae6;
+  --ocean-blue: #219ebc;
+  --sunshine-yellow: #ffb703;
+  --deep-orange: #fb8500;
+  --dark-navy: #023047;
+  --light-gray: #f8f9fa;
+  --medium-gray: #6c757d;
+  --success-green: #52b788;
+  --alert-red: #d62828;
+  --white: #ffffff;
+  
+  /* Typography */
+  --font-heading: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  
+  /* Spacing */
+  --border-radius: 8px;
+  --shadow-soft: 0 2px 8px rgba(2, 48, 71, 0.1);
+  --shadow-medium: 0 4px 16px rgba(2, 48, 71, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--dark-navy);
+  background-color: var(--white);
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--dark-navy);
+}
+
+/* Button Styles */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--border-radius);
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: var(--deep-orange);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background-color: #e07600;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: var(--ocean-blue);
+  color: var(--white);
+}
+
+.btn-secondary:hover {
+  background-color: #1a7a94;
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--ocean-blue);
+  border: 2px solid var(--ocean-blue);
+}
+
+.btn-outline:hover {
+  background-color: var(--ocean-blue);
+  color: var(--white);
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--dark-navy);
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: var(--border-radius);
+  font-family: var(--font-body);
+  font-size: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--ocean-blue);
+  box-shadow: 0 0 0 3px rgba(33, 158, 188, 0.1);
+}
+
+/* Card Styles */
+.card {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-soft);
+  padding: 2rem;
+}
+
+.card-large {
+  box-shadow: var(--shadow-medium);
+  padding: 3rem;
+}
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.text-primary { color: var(--ocean-blue); }
+.text-accent { color: var(--deep-orange); }
+.text-muted { color: var(--medium-gray); }
+
+.bg-light { background-color: var(--light-gray); }
+.bg-primary { background-color: var(--ocean-blue); }
+.bg-accent { background-color: var(--deep-orange); }
+
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 2rem; }
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mt-4 { margin-top: 2rem; }
