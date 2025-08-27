@@ -51,6 +51,14 @@ const AccountsForm: React.FC<AccountsFormProps> = ({ editingAccount, onCancel })
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate required fields
+    if (!formData.name || !formData.currency || !formData.balance) {
+      alert('Please fill in all required fields (Name, Currency, Balance)');
+      return;
+    }
+
+    console.log('Submitting account:', formData);
+    
     if (editingAccount) {
       update.mutate({ id: editingAccount.id, data: formData });
     } else {

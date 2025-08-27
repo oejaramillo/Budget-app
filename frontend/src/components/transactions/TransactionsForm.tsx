@@ -45,14 +45,14 @@ const TransactionsForm: React.FC<TransactionsFormProps> = ({ editingTransaction,
     useEffect(() => {
         if (editingTransaction) {
             setFormData({
-                account: editingTransaction.account.id,
+                account: editingTransaction.account,
                 transaction_type: editingTransaction.transaction_type,
                 transaction_date: editingTransaction.transaction_date.split('T')[0],
                 amount: editingTransaction.amount,
                 description: editingTransaction.description,
-                category: editingTransaction.category?.id || null,
-                budget: editingTransaction.budget?.id || null,
-                currency: editingTransaction.currency.id,
+                category: editingTransaction.category || null,
+                budget: editingTransaction.budget || null,
+                currency: editingTransaction.currency,
             });
         }
     }, [editingTransaction]);
@@ -66,7 +66,7 @@ const TransactionsForm: React.FC<TransactionsFormProps> = ({ editingTransaction,
             return;
         }
 
-
+        console.log('Submitting transaction:', formData);
 
         if (editingTransaction) {
             update.mutate({ id: editingTransaction.id, data: formData });

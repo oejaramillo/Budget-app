@@ -5,16 +5,20 @@ import { Currency } from './currencies';
 
 export interface Transaction {
   id: number;
-  account: Account;
+  account: number;
+  account_detail?: Account;
   transaction_type: 'income' | 'expense' | 'transfer';
   transaction_type_display: string;
   transaction_date: string;
   created_date: string;
   amount: string;
   description: string;
-  category: Category | null;
-  budget: Budget | null;
-  currency: Currency;
+  category: number | null;
+  category_detail?: Category | null;
+  budget: number | null;
+  budget_detail?: Budget | null;
+  currency: number;
+  currency_detail?: Currency;
   user: string;
 }
 

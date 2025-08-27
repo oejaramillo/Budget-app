@@ -41,14 +41,14 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({ onEdit }) => {
                 <td style={{ padding: '8px' }}>
                   {new Date(transaction.transaction_date).toLocaleDateString()}
                 </td>
-                <td style={{ padding: '8px' }}>{transaction.account.name}</td>
+                <td style={{ padding: '8px' }}>{transaction.account_detail?.name || 'Unknown Account'}</td>
                 <td style={{ padding: '8px' }}>{transaction.transaction_type_display}</td>
                 <td style={{ padding: '8px' }}>
-                  {transaction.currency.code} {transaction.amount}
+                  {transaction.currency_detail?.code || 'N/A'} {transaction.amount}
                 </td>
                 <td style={{ padding: '8px' }}>{transaction.description}</td>
                 <td style={{ padding: '8px' }}>
-                  {transaction.category?.name || 'No category'}
+                  {transaction.category_detail?.name || 'No category'}
                 </td>
                 <td style={{ padding: '8px' }}>
                   {onEdit && (

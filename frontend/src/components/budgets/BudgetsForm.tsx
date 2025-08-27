@@ -10,7 +10,7 @@ interface BudgetsFormProps {
 
 const BudgetsForm: React.FC<BudgetsFormProps> = ({ editingBudget, onCancel }) => {
   const { create, update } = useBudgets();
-  const { currencies } = useCurrencies();
+  const { currencies, isLoading: currenciesLoading } = useCurrencies();
 
   // Find principal currency
   const principalCurrency = currencies.find(currency => currency.principal);
@@ -26,13 +26,13 @@ const BudgetsForm: React.FC<BudgetsFormProps> = ({ editingBudget, onCancel }) =>
 
   // Set principal currency as default when currencies load
   useEffect(() => {
-    if (principalCurrency && !editingBudget && formData.currency === 0) {
+    if (principalCurrency && !editingBudget) {
       setFormData(prev => ({
         ...prev,
         currency: principalCurrency.id
       }));
     }
-  }, [principalCurrency, editingBudget, formData.currency]);
+  }, [principalCurrency, editingBudget]);
 
   useEffect(() => {
     if (editingBudget) {
@@ -50,6 +50,12 @@ const BudgetsForm: React.FC<BudgetsFormProps> = ({ editingBudget, onCancel }) =>
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate currency selection
+    if (!formData.currency || formData.currency === 0) {
+      alert('Please select a currency');
+      return;
+    }
+
     // Validate that min_amount <= max_amount
     if (parseFloat(formData.min_amount) > parseFloat(formData.max_amount)) {
       alert('Minimum amount cannot be greater than maximum amount');
@@ -61,6 +67,11 @@ const BudgetsForm: React.FC<BudgetsFormProps> = ({ editingBudget, onCancel }) =>
       alert('Start date must be before end date');
       return;
     }
+
+    console.log('Submitting budget:', formData);
+    console.log('JWT Token exists:', !!localStorage.getItem('access'));
+    console.log('Principal currency:', principalCurrency);
+    console.log('Available currencies:', currencies.length);
     
     if (editingBudget) {
       update.mutate({ id: editingBudget.id, data: formData });
@@ -89,6 +100,10 @@ const BudgetsForm: React.FC<BudgetsFormProps> = ({ editingBudget, onCancel }) =>
     }));
   };
 
+  if (currenciesLoading) {
+    return <div>Loading currencies...</div>;
+  }
+
   return (
     <div>
       <h2>{editingBudget ? 'Edit Budget' : 'Create Budget'}</h2>
@@ -116,7 +131,7 @@ const BudgetsForm: React.FC<BudgetsFormProps> = ({ editingBudget, onCancel }) =>
             required
             style={{ width: '100%', padding: '8px', marginTop: '4px' }}
           >
-            <option value="">Select a currency</option>
+            {!formData.currency && <option value="">Select a currency</option>}
             {currencies.map(currency => (
               <option key={currency.id} value={currency.id}>
                 {currency.code} - {currency.name} {currency.principal ? '(Principal)' : ''}

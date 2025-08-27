@@ -15,6 +15,10 @@ export const useBudgets = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
     },
+    onError: (error) => {
+      console.error('Budget creation failed:', error);
+      alert(`Failed to create budget: ${error.response?.data?.detail || error.message}`);
+    },
   });
 
   const update = useMutation({
