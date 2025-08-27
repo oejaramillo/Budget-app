@@ -23,6 +23,14 @@ export const useCurrencies = () => {
     },
   });
 
+  // Debug logging
+  console.log('Currencies hook:', { 
+    currencies: data?.data, 
+    isLoading, 
+    error: error?.message,
+    principalCurrency: data?.data?.find(c => c.principal)
+  });
+
   return {
     currencies: data?.data ?? [],
     isLoading,
