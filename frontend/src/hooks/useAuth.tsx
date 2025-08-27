@@ -131,7 +131,7 @@ export const useAuth = () => {
   });
 
   const logout = useMutation({
-    mutationFn: logoutFn,
+    mutationFn: async () => logoutFn(), // Wrap logoutFn in an async function to match MutationFunction signature
     onSuccess: () => {
       queryClient.clear();
     },
