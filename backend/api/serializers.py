@@ -18,7 +18,7 @@ class CurrenciesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Currencies
-        fields = ['name', 'code', 'exchange_rate', 'formatted_exchange_rate', 'principal']
+        fields = ['id', 'name', 'code', 'exchange_rate', 'formatted_exchange_rate', 'principal', 'is_active']
         read_only_fields = ['principal']
 
     def get_formatted_exchange_rate(self, obj):

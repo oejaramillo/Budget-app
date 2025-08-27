@@ -34,15 +34,13 @@ const TransactionsForm: React.FC<TransactionsFormProps> = ({ editingTransaction,
 
     // Set principal currency as default when currencies load
     useEffect(() => {
-        console.log('Principal currency effect:', { principalCurrency, editingTransaction, currentCurrency: formData.currency });
-        if (principalCurrency && !editingTransaction && formData.currency === 0) {
-            console.log('Setting principal currency as default:', principalCurrency.id);
+        if (principalCurrency && !editingTransaction) {
             setFormData(prev => ({
                 ...prev,
                 currency: principalCurrency.id
             }));
         }
-    }, [principalCurrency, editingTransaction, formData.currency]);
+    }, [principalCurrency, editingTransaction]);
 
     useEffect(() => {
         if (editingTransaction) {
@@ -61,6 +59,14 @@ const TransactionsForm: React.FC<TransactionsFormProps> = ({ editingTransaction,
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate required fields
+        if (!formData.account || !formData.currency || !formData.amount) {
+            alert('Please fill in all required fields (Account, Currency, Amount)');
+            return;
+        }
+
+
 
         if (editingTransaction) {
             update.mutate({ id: editingTransaction.id, data: formData });
@@ -85,10 +91,11 @@ const TransactionsForm: React.FC<TransactionsFormProps> = ({ editingTransaction,
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+
         setFormData(prev => ({
             ...prev,
             [name]: name === 'category' || name === 'budget' ? (value ? parseInt(value) : null) :
-                name === 'account' || name === 'currency' ? parseInt(value) : value
+                name === 'account' || name === 'currency' ? (value ? parseInt(value) : 0) : value
         }));
     };
 
@@ -100,6 +107,8 @@ const TransactionsForm: React.FC<TransactionsFormProps> = ({ editingTransaction,
                     <strong>Note:</strong> No currencies found. Please add currencies first before creating transactions.
                 </div>
             )}
+
+
             <form onSubmit={handleSubmit} style={{ maxWidth: '500px' }}>
                 <div style={{ marginBottom: '1rem' }}>
                     <label htmlFor="account">Account *</label>
