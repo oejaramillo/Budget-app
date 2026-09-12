@@ -49,3 +49,20 @@ export const TRANSACTION_TYPES = [
 
 /** Default page size requested from paginated list endpoints. */
 export const PAGE_SIZE = 100
+
+/** Superuser-only console endpoints. */
+export const OPS_ENDPOINTS = {
+  overview: `${API_PREFIX}/ops/overview/`,
+  operations: `${API_PREFIX}/ops/operations/`,
+  history: `${API_PREFIX}/ops/operations/history/`,
+  settings: `${API_PREFIX}/ops/settings/`,
+  tenants: `${API_PREFIX}/ops/tenants/`,
+  tenantsSummary: `${API_PREFIX}/ops/tenants/summary/`,
+}
+
+/** How dangerous an operation is, as declared by the backend registry. */
+export const OPERATION_SAFETY = {
+  read: { label: 'Read-only', tone: 'info' },
+  mutate: { label: 'Changes data', tone: 'warning' },
+  destructive: { label: 'Destructive', tone: 'danger' },
+}

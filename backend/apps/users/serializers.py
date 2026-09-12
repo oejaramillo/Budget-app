@@ -5,11 +5,26 @@ from rest_framework import serializers
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Read-only representation of the authenticated user."""
+    """Read-only representation of the authenticated user.
+
+    `is_superuser` is included so the client can decide whether to render the
+    superuser console. It is not a permission decision: `/api/v1/ops/` checks
+    `is_superuser` on the server for every request. `is_staff` alone is not enough
+    to open the console, which is why both flags are exposed.
+    """
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "date_joined", "is_staff"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "date_joined",
+            "is_staff",
+            "is_superuser",
+        ]
         read_only_fields = fields
 
 

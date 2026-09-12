@@ -24,12 +24,13 @@ into the currency you actually think in.
 9. [Common commands](#common-commands)
 10. [API reference](#api-reference)
 11. [Money and multi-currency rules](#money-and-multi-currency-rules)
-12. [Security and multi-tenancy](#security-and-multi-tenancy)
-13. [Testing](#testing)
-14. [Deployment](#deployment)
-15. [Project conventions](#project-conventions)
-16. [Roadmap](#roadmap)
-17. [Troubleshooting](#troubleshooting)
+12. [Superuser operations console](#superuser-operations-console)
+13. [Security and multi-tenancy](#security-and-multi-tenancy)
+14. [Testing](#testing)
+15. [Deployment](#deployment)
+16. [Project conventions](#project-conventions)
+17. [Roadmap](#roadmap)
+18. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -44,7 +45,7 @@ into the currency you actually think in.
 | Investments | Holdings (stock, ETF, fund, bond, crypto, real estate, other) with quantity, cost basis and dated valuations, so gains are measured against a real value history. |
 | Reporting | Period summary (income, expenses, net, per-category breakdown), monthly trend, net worth per currency, and portfolio totals — all convertible into a chosen currency. |
 | Auth | Registration, JWT login, transparent access-token refresh, `/auth/me/` profile, staff-only administration. |
-| Ops | Health endpoint, request throttling, pagination, audit trail of rate refreshes, Django admin. |
+| Ops | Health endpoint, request throttling, pagination, audit trail of rate refreshes, Django admin, and a **superuser console** for maintenance and tenant administration. |
 
 ---
 
@@ -55,12 +56,13 @@ into the currency you actually think in.
 │  React SPA (Vite)            │        │  Django + DRF                          │
 │                              │        │                                        │
 │  components/  ──▶  hooks/    │  HTTPS │  apps/users        auth + JWT          │
-│      (React Query)           │ ─────▶ │  apps/currencies   catalogue + rates   │
+│   (React Query + useForm)    │ ─────▶ │  apps/currencies   catalogue + rates   │
 │          │                   │  JSON  │  apps/accounts     money containers    │
 │          ▼                   │        │  apps/budgets      envelopes           │
 │      services/  ──▶ api.js   │        │  apps/transactions ledger + reports    │
 │   (the only axios user)      │        │  apps/investments  holdings            │
-└──────────────────────────────┘        └────────────────┬───────────────────────┘
+└──────────────────────────────┘        │  apps/ops          superuser console   │
+                                        └────────────────┬───────────────────────┘
                                                          │ psycopg2 (TLS)
                                                          ▼
                                           ┌────────────────────────────┐
@@ -147,7 +149,8 @@ Budget-app/
 │       ├── accounts/             Account + balances/net-worth endpoints
 │       ├── budgets/              Budget + status endpoint
 │       ├── transactions/         Category, Transaction, services.py, reports
-│       └── investments/          Holding, Valuation, portfolio endpoints
+│       ├── investments/          Holding, Valuation, portfolio endpoints
+│       └── ops/                  superuser-only operations console and audit log
 └── frontend/
     ├── index.html
     ├── package.json
@@ -164,6 +167,7 @@ Budget-app/
         │   ├── ui/               Field, Alert, StatCard, DataTable, FormPanel
         │   ├── auth/             LandingPage, AuthPanel
         │   ├── dashboard/        DashboardShell (tabs), Dashboard (overview)
+        │   ├── admin/            SuperuserHub, OpsOverview, OperationsConsole, UsersAdmin
         │   └── accounts|transactions|categories|budgets|investments|currencies/
         └── styles/globals.css
 ```
@@ -178,6 +182,9 @@ all obey the same rules.
 ## Data model
 
 ```
+OperationRun ──▶ User      (audit trail of console actions)
+OpsSettings               (singleton: safety switches for the console)
+
 User (django.contrib.auth)
  │
  ├── Account ────────────── currency ──▶ Currency ◀── principal (exactly one)
@@ -503,6 +510,25 @@ filters.
 | GET/POST | `/valuations/` | List / create valuations. |
 | GET/PUT/PATCH/DELETE | `/valuations/{id}/` | Retrieve / update / delete. |
 
+### Superuser console — `apps/ops`
+
+Every endpoint below requires `is_superuser` (not merely `is_staff`) and returns
+`403` otherwise. See [Superuser operations console](#superuser-operations-console).
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/ops/overview/` | Stats, integrity report, rate freshness, operation registry, apps and settings in one response. |
+| GET | `/ops/operations/` | The operation registry, with each operation's declared input fields and whether it is currently allowed. |
+| POST | `/ops/operations/{key}/run/` | Run an operation. Body: `{"arguments": {...}}`. `409` when policy blocks the safety level, `502` when the operation itself failed. |
+| GET | `/ops/operations/history/` | Audit trail of runs, newest first. Filters: `operation`, `status`. |
+| GET/PATCH | `/ops/settings/` | Read or update `allow_mutating_operations` and `allow_destructive_operations`. |
+| GET | `/ops/tenants/` | Tenant list with per-tenant data counts. |
+| GET | `/ops/tenants/summary/` | Total, active, staff and superuser counts. |
+| GET | `/ops/tenants/{id}/` | One tenant. |
+| PATCH | `/ops/tenants/{id}/` | Set `is_active`, `is_staff`, `is_superuser`. |
+| POST | `/ops/tenants/{id}/set-password/` | `{"new_password": "..."}`. |
+| DELETE | `/ops/tenants/{id}/` | `{"confirm_username": "<username>"}`; cascades to owned data. |
+
 ### Example session
 
 ```bash
@@ -564,6 +590,159 @@ same browser session.
 
 ---
 
+## Superuser operations console
+
+Day-to-day maintenance and tenant administration live behind one superuser-only
+area, reachable as the **⚙ Superuser** tab in the app (or under `/api/v1/ops/`).
+
+To get in, create a superuser and sign in with it:
+
+```bash
+python manage.py createsuperuser
+```
+
+A normal account never sees the tab; a `is_staff`-only account sees it but gets
+`403` from every endpoint, because the console requires `is_superuser`.
+
+### What it does
+
+| Section | Purpose |
+| --- | --- |
+| **Overview** | Service-wide counts, database backend/version/size, rate freshness, the data-integrity report, busiest tenants, installed apps, and the safety switches. |
+| **Currencies** | Full currency catalogue CRUD: create/edit rates and symbols, choose the principal currency, and refresh rates from the provider. |
+| **Operations** | Run registered maintenance operations, read each result, and browse the audit trail of past runs. |
+| **Tenants** | List every account with its data footprint, activate/deactivate, grant or revoke staff/superuser, reset a password, or delete a tenant and everything they own. |
+
+### Registered operations
+
+Operations are an **allowlist of Python callables** with declared, typed
+arguments. There is no shell involved, so operator input can never become a
+command. Each one declares a safety level, which the console shows and enforces.
+
+| Key | Safety | What it does |
+| --- | --- | --- |
+| `system_stats` | read | Counts for users, accounts, transactions, budgets, holdings and currencies, plus database size and rate freshness. |
+| `integrity_check` | read | Sweep for conditions where stored data disagrees with the rules (see below). |
+| `refresh_currencies` | mutate | Same code path as `manage.py refresh_currencies`; options for base currency, `force` and `create_missing`. |
+| `run_migrations` | destructive | Applies pending migrations. **Disabled by default** — prefer the CLI. |
+
+Safety levels:
+
+* **read** — never writes; always available.
+* **mutate** — changes application data; disabled by `allow_mutating_operations`.
+* **destructive** — can break the running service; disabled by
+  `allow_destructive_operations` and blocked with a `409` plus an explanation.
+
+The two switches live in **Overview → Operations settings** (or
+`PATCH /api/v1/ops/settings/`). They are stored in the database rather than in
+settings so you can flip them at runtime when something is on fire and a deploy
+is not an option.
+
+### The integrity check
+
+Read-only, and it reports rather than repairs — a human decides whether a finding
+is a bug or a legitimate edge case. It looks for:
+
+* **`account_balance_mismatch`** — `Account.balance` disagrees with the sum of the
+  account's transactions (the usual cause is a manual edit in the Django admin or
+  the shell, bypassing the service layer). Fix with
+  `POST /api/v1/accounts/{id}/adjust-balance/`.
+* **`no_principal_currency`** / **`inactive_principal_currency`** — reporting has no
+  valid target currency.
+* **`non_positive_exchange_rate`**, **`base_currency_rate_not_one`** — rates that
+  would corrupt conversions.
+* **`rates_never_refreshed`**, **`unused_currencies`** — housekeeping signals.
+* **`transfer_without_destination`**, **`transfer_same_account`**,
+  **`non_positive_amount`** — ledger rules that a constraint should already block.
+* **`foreign_currency_without_rate`** — a transaction in a different currency from
+  its account with no explicit rate, so its reporting value is ambiguous.
+* **`transaction_account_currency_mismatch`**,
+  **`category_budget_owner_mismatch`**, **`transaction_budget_owner_mismatch`**,
+  **`holding_account_owner_mismatch`** — cross-tenant references that should be
+  impossible.
+
+Run it from the CLI too:
+
+```bash
+python manage.py shell -c "from apps.ops.services import check_data_integrity; import json; print(json.dumps(check_data_integrity(), indent=2))"
+```
+
+### Tenant administration endpoints
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/ops/tenants/` | Paginated list with `account_count`, `transaction_count`, `holding_count`. Filters: `is_active`, `is_staff`, `is_superuser`, `search`, `ordering`. |
+| GET | `/ops/tenants/{id}/` | One tenant. |
+| PATCH | `/ops/tenants/{id}/` | Only `is_active`, `is_staff`, `is_superuser`. Profile fields are rejected. |
+| POST | `/ops/tenants/{id}/set-password/` | `{"new_password": "..."}`, validated by Django. |
+| DELETE | `/ops/tenants/{id}/` | Requires `{"confirm_username": "<their username>"}`. Cascades to everything they own. |
+| GET | `/ops/tenants/summary/` | Totals, active, staff and superuser counts. |
+
+Hard rails, enforced in the API and mirrored in the UI:
+
+* you cannot deactivate, demote or delete **your own** account;
+* the **last active superuser** cannot be demoted, deactivated or deleted, so the
+  service can never become unadministrable;
+* deletion requires typing the username back;
+* tokens already issued to a tenant are *not* revoked by a password reset — they
+  expire on their own schedule, so deactivate the account to cut access immediately.
+
+### Audit trail
+
+Every run is written to `OperationRun` before the callable starts and updated
+afterwards, so a crash still leaves evidence. Recorded: operation, arguments, who
+triggered it, status (`running`/`success`/`failed`/`skipped`), duration, output,
+error and the structured result. Browse it in **Operations → Recent runs** or:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/ops/operations/history/?operation=refresh_currencies"
+```
+
+`GET /ops/operations/` returns the registry with each operation's declared fields,
+which is what the UI renders its forms from — so adding an operation needs no
+frontend change.
+
+### Adding an operation
+
+Register it in `backend/apps/ops/services.py`:
+
+```python
+register(
+    OperationSpec(
+        key="recompute_balances",
+        label="Recompute account balances",
+        description="Rebuild every cached balance from its transactions.",
+        safety=Safety.MUTATE,
+        group="Checks",
+        handler=recompute_balances,
+        fields=(
+            FieldSpec(name="dry_run", label="Dry run", type="boolean", default=True),
+        ),
+    )
+)
+```
+
+The handler receives only the declared, coerced arguments as keyword arguments and
+returns a dict (include `"_status": OperationRun.Status.SKIPPED` to record a no-op).
+Arguments are validated against the spec: unknown keys are rejected, so a typo or a
+crafted request cannot widen what an operation does.
+
+### Keeping the audit trail bounded
+
+`OperationRun` grows forever. It is small (a few hundred bytes per run) and the
+console only reads the newest 100, so pruning is optional. When you want it:
+
+```bash
+python manage.py shell -c "
+from django.utils import timezone
+from apps.ops.models import OperationRun
+cutoff = timezone.now() - timezone.timedelta(days=180)
+print(OperationRun.objects.filter(started_at__lt=cutoff).delete())
+"
+```
+
+---
+
 ## Security and multi-tenancy
 
 * **Per-user scoping by construction.** Every viewset builds its queryset with
@@ -605,10 +784,23 @@ same browser session.
 
 ```bash
 cd backend
-python manage.py test                 # 95 tests, ~45s
+python manage.py test                 # 147 tests, ~1s
 python manage.py test apps.transactions
+python manage.py test apps.ops        # superuser console
 python manage.py test apps.accounts.tests.AccountIsolationTests
 ```
+
+> **Tests never touch your configured database.** When it detects a test run, the
+> settings package loads `backend/settings/test.py`, which swaps the database for
+> in-memory SQLite, uses a fast password hasher and disables throttling. This
+> matters because `DATABASE_URL` may point at a live Neon database: Django would
+> otherwise create a `test_<name>` database beside it and often fail to drop it
+> through Neon's connection pooler. Opt out only if you deliberately want to test
+> against real PostgreSQL:
+>
+> ```bash
+> DJANGO_TEST_USE_CONFIGURED_DB=1 python manage.py test --keepdb
+> ```
 
 The suite focuses on the things that would be expensive to get wrong:
 
@@ -620,9 +812,13 @@ The suite focuses on the things that would be expensive to get wrong:
 | `apps/transactions/tests.py` | **Cross-user isolation**, balance effects for income/expense/transfer, revert on delete, `0.10 + 0.20` exactness, transfer/category/budget rules, foreign-currency rate requirement, atomic bulk insert, summary and monthly reporting. |
 | `apps/budgets/tests.py` | Date/amount validation, ownership, account-link scoping, status and overspend detection. |
 | `apps/investments/tests.py` | Symbol/quantity handling, valuation history, portfolio totals and conversion, per-kind grouping. |
+| `apps/ops/tests.py` | Superuser gate (anonymous, user and staff-only all rejected), operation registry and argument coercion (including a shell-injection-shaped key), safety policy (destructive blocked by default, read-only always allowed), audit-trail recording of successes *and* failures, `refresh_currencies` skipping when rates are fresh, integrity detection of balance drift and cross-tenant links, JSON-serialisability of the overview payload, and every tenant-admin guard. |
 
 Frontend checks are `npm run lint` and `npm run build` (Vite fails on unresolved
-imports). There is no component test runner yet — see the [roadmap](#roadmap).
+imports). There is no component test runner yet — see the [roadmap](#roadmap). The
+superuser console was additionally verified by driving the running app with a
+headless browser: signing in, switching tabs, running the integrity check from the
+UI and confirming a destructive operation is shown as blocked.
 
 ---
 
@@ -743,7 +939,8 @@ Known gaps, roughly in priority order.
    endpoint was built with this in mind).
 4. **Recurring transactions** and scheduled income/expenses.
 5. **Frontend tests.** Vitest + React Testing Library on the money formatting, the
-   auth refresh interceptor and the form error mapping.
+   auth refresh interceptor, the form error mapping and the operations console's
+   schema-driven form.
 6. **API schema and docs.** `drf-spectacular` for an OpenAPI file, then generated
    client types.
 7. **HTTP-only cookie auth** instead of `localStorage` (see

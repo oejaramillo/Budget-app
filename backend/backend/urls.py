@@ -28,6 +28,8 @@ def api_root(_request):
                 "transactions": "/api/v1/transactions/",
                 "holdings": "/api/v1/holdings/",
                 "valuations": "/api/v1/valuations/",
+                "ops_overview": "/api/v1/ops/overview/",
+                "ops_operations": "/api/v1/ops/operations/",
             },
             "docs": "https://github.com/oejaramillo/Budget-app#api-reference",
         }
@@ -41,6 +43,7 @@ api_v1 = [
     path("", include("apps.budgets.urls")),
     path("", include("apps.transactions.urls")),
     path("", include("apps.investments.urls")),
+    path("", include("apps.ops.urls")),
 ]
 
 urlpatterns = [

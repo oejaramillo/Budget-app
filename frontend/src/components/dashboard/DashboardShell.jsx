@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useAuthContext } from '../../hooks/useAuth'
 import { useCurrencies } from '../../hooks/useCurrencies'
 import AccountsManager from '../accounts/AccountsManager'
+import SuperuserHub from '../admin/SuperuserHub'
 import BudgetsManager from '../budgets/BudgetsManager'
 import CategoriesManager from '../categories/CategoriesManager'
 import CurrenciesManager from '../currencies/CurrenciesManager'
@@ -10,7 +11,12 @@ import Dashboard from '../dashboard/Dashboard'
 import HoldingsManager from '../investments/HoldingsManager'
 import TransactionsManager from '../transactions/TransactionsManager'
 
-/** Tabs of the authenticated area. */
+/**
+ * Tabs of the authenticated area.
+ *
+ * `superuserOnly` tabs are filtered out for everyone else. Hiding them is a
+ * usability choice; `/api/v1/ops/` enforces `is_superuser` regardless.
+ */
 const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'accounts', label: 'Accounts' },
@@ -19,6 +25,7 @@ const TABS = [
   { id: 'budgets', label: 'Budgets' },
   { id: 'investments', label: 'Investments' },
   { id: 'currencies', label: 'Currencies' },
+  { id: 'superuser', label: '⚙ Superuser', superuserOnly: true },
 ]
 
 /**
@@ -36,6 +43,7 @@ export default function DashboardShell() {
 
   const principal = currencies.find((currency) => currency.principal)
   const activeCurrencies = currencies.filter((currency) => currency.is_active)
+  const visibleTabs = TABS.filter((tab) => !tab.superuserOnly || user?.is_superuser)
 
   const renderTab = () => {
     switch (activeTab) {
@@ -51,6 +59,8 @@ export default function DashboardShell() {
         return <HoldingsManager />
       case 'currencies':
         return <CurrenciesManager />
+      case 'superuser':
+        return <SuperuserHub />
       case 'overview':
       default:
         return <Dashboard targetCurrency={targetCurrency || undefined} />
@@ -118,7 +128,10 @@ export default function DashboardShell() {
                   ))}
               </select>
             </label>
-            <span className="text-muted">Hi, {user?.username}</span>
+            <span className="text-muted">
+              Hi, {user?.username}
+              {user?.is_superuser ? ' (superuser)' : ''}
+            </span>
             <button type="button" className="btn btn-outline btn-sm" onClick={logout}>
               Sign out
             </button>
@@ -129,7 +142,7 @@ export default function DashboardShell() {
       <main style={{ padding: '2rem' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div className="tabs mb-3" role="tablist">
-            {TABS.map((tab) => (
+            {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"

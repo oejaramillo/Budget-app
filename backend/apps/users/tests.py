@@ -95,6 +95,20 @@ class SessionTests(APITestCase):
         response = self.client.get("/api/v1/auth/me/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["username"], "erin")
+        # The client needs both flags to decide whether to offer the superuser
+        # console; the server still enforces access on /api/v1/ops/.
+        self.assertIn("is_staff", response.data)
+        self.assertIn("is_superuser", response.data)
+        self.assertFalse(response.data["is_superuser"])
+
+    def test_me_reports_superuser_status(self):
+        root = User.objects.create_superuser(
+            username="root", email="root@example.com", password="root-password-123"
+        )
+        self.client.force_authenticate(root)
+        response = self.client.get("/api/v1/auth/me/")
+        self.assertTrue(response.data["is_superuser"])
+        self.assertTrue(response.data["is_staff"])
 
     def test_health_is_public(self):
         response = self.client.get("/api/v1/health/")
