@@ -1,24 +1,59 @@
-# Ignore Python cache files
-**/__pycache__/
-**/*.py[cod]
+# =============================================================================
+# Budget App — repository ignore rules
+# =============================================================================
 
-# Ignore Django migrations
-migrations/
-*/migrations/
-*/__pycache__/
-
-# Ignore specific files
-*.pyc
-*.pyo
-*.pyd
-*.sqlite3
-database.py
-*.ipynb
-
-# Ignore environment files
-amb
+# --- Secrets -----------------------------------------------------------------
+# Real credentials live in backend/.env and frontend/.env, which are ignored.
+# Committed templates use the *.example suffix.
 .env
+.env.*
+!.env.example
+*.pem
+*.key
 
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+develop/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Virtual environments ----------------------------------------------------
+venv/
+.venv/
+env/
+amb/
+ENV/
+
+# --- Django ------------------------------------------------------------------
+# Database migrations are application code and ARE committed. Only generated
+# artefacts below are ignored.
+*.sqlite3
+*.sqlite3-journal
+/backend/staticfiles/
+/backend/media/
+/backend/logs/
+*.log
+
+# --- Node / frontend ---------------------------------------------------------
 node_modules/
+frontend/dist/
+frontend/.vite/
 .cache/
+.eslintcache
+
+# --- Editors / OS ------------------------------------------------------------
 .vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Notebooks / scratch -----------------------------------------------------
+*.ipynb
+.ipynb_checkpoints/
+database.py

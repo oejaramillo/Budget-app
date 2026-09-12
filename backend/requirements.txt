@@ -1,12 +1,34 @@
-asgiref
-Django
-django-cors-headers
-djangorestframework
-djangorestframework-simplejwt
-PyJWT
-pytz
-sqlparse
-psycopg2-binary
-python-dotenv
-django-filter
-django-environ
+# =============================================================================
+# Budget App — backend dependencies
+# =============================================================================
+# Install with:  pip install -r requirements.txt
+#
+# Pinned to the versions this project is developed and tested against. Bump
+# deliberately (and re-run the test suite) rather than letting a deploy drift.
+# =============================================================================
+
+# --- Framework ---------------------------------------------------------------
+Django==6.1.1
+djangorestframework==3.18.1
+
+# --- Auth --------------------------------------------------------------------
+# JWT access/refresh tokens. PyJWT is the codec SimpleJWT uses; pytz is not
+# needed because Django 5+ relies on zoneinfo from the standard library.
+djangorestframework-simplejwt==5.5.1
+
+# --- API plumbing ------------------------------------------------------------
+django-cors-headers==4.9.0     # lets the decoupled React app call this API
+django-filter==26.1            # querystring filtering on list endpoints
+django-environ==0.14.0         # reads .env and parses DATABASE_URL
+
+# --- Database ----------------------------------------------------------------
+# PostgreSQL driver. Neon speaks plain PostgreSQL over TLS, so nothing Neon
+# specific is required here.
+psycopg2-binary==2.9.13
+
+# --- External services -------------------------------------------------------
+requests==2.34.2               # exchange-rate provider HTTP calls
+
+# --- Production serving ------------------------------------------------------
+gunicorn==26.2.0               # WSGI server used by the deployment targets
+whitenoise==6.12.0             # serves collected static files without nginx

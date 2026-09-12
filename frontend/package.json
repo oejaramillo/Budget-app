@@ -1,25 +1,24 @@
 {
-  "name": "frontend",
+  "name": "budget-app-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "description": "React single-page client for the Budget App API",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@tanstack/react-query": "^5.84.2",
-    "@tanstack/react-query-devtools": "^5.85.5",
     "axios": "^1.10.0",
-    "jwt-decode": "^4.0.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.2"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@tanstack/react-query-devtools": "^5.85.5",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
