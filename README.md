@@ -41,7 +41,7 @@ into the currency you actually think in.
 | --- | --- |
 | Accounts | Unlimited accounts per user: checking, savings, credit card, cash, investment, loan, other. Institution and account number fields, active/inactive flag. |
 | Currencies | Shared ISO-4217 catalogue with a rate per currency, one "principal" reporting currency, and dated rate history for auditing. |
-| Transactions | Income, expense and transfers. Categories, budgets, free-text description, and an explicit exchange rate when the transaction currency differs from the account. |
+| Transactions | Income, expense and transfers. Keyboard-first logging with description autocomplete from your own history, server-side filtering (period presets, account, type, search), pagination, and in-place row editing to fix a mistake. Explicit exchange rate when the transaction currency differs from the account. |
 | Budgets | Period-based envelopes with a minimum and maximum, linked accounts, and live spend/remaining/percentage figures. |
 | Investments | Holdings (stock, ETF, fund, bond, crypto, real estate, other) with quantity, cost basis and dated valuations, so gains are measured against a real value history. |
 | Reporting | Period summary (income, expenses, net, per-category breakdown), monthly trend, net worth per currency, and portfolio totals — all convertible into a chosen currency. |
@@ -378,6 +378,7 @@ is the documented template.
 | `DB_CONN_MAX_AGE` | `0` | Seconds to reuse a connection. |
 | `CORS_ALLOWED_ORIGINS` | *(empty)* | Frontend origins, with scheme. Required in production. |
 | `CSRF_TRUSTED_ORIGINS` | *(empty)* | Same origins, needed for the Django admin over HTTPS. |
+| `DJANGO_TIME_ZONE` | `UTC` | Zone used to render stored timestamps (`created_date`, `last_updated`). Set it to where you are, e.g. `America/Guayaquil`. Calendar dates such as `transaction_date` are never affected. |
 | `ACCESS_TOKEN_LIFETIME_MINUTES` | `30` | Short by design; the SPA refreshes silently. |
 | `REFRESH_TOKEN_LIFETIME_DAYS` | `7` | |
 | `EXCHANGE_API_KEY` | *(empty)* | Free key from exchangerate-api.com. Optional. |
@@ -496,11 +497,27 @@ filters.
 | --- | --- | --- |
 | GET/POST | `/categories/` | List / create. Filters: `budget`, `is_active`. |
 | GET/PUT/PATCH/DELETE | `/categories/{id}/` | Retrieve / update / delete. |
-| GET/POST | `/transactions/` | List / create. Filters: `account`, `destination_account`, `category`, `budget`, `transaction_type`, `transaction_date`. |
+| GET/POST | `/transactions/` | List / create. See the filter table below. |
 | GET/PUT/PATCH/DELETE | `/transactions/{id}/` | Retrieve / update / delete. Balances are re-adjusted on every write. |
+| GET | `/transactions/descriptions/?q=&account=&limit=` | Distinct descriptions the user has used before, most used first. The autocomplete source for the logging form. |
+| GET | `/transactions/recent/?limit=8` | The user's latest entries, for repeat entry. |
+| GET | `/transactions/stats/` | Count, first/last date, uncategorised and undated-description counts. |
 | POST | `/transactions/bulk/` | Atomic array of up to 100 transactions — either all land or none. |
 | GET | `/transactions/summary/?start=&end=&target=` | Income, expenses, net, per-category breakdown. Defaults to the current month. |
 | GET | `/transactions/monthly/?months=6` | Totals grouped by month (1–36). |
+
+Transaction list filters (`GET /transactions/`):
+
+| Parameter | Meaning |
+| --- | --- |
+| `account`, `destination_account`, `category`, `budget`, `transaction_type` | Exact match. |
+| `date_from`, `date_to` | Inclusive date bounds. |
+| `month` | Shorthand for one period, e.g. `?month=2026-03`. |
+| `amount_min`, `amount_max` | Amount bounds. |
+| `uncategorised=true` | Entries with no category — the "needs tidying" list. |
+| `search` | Matches description, account name and category name. |
+| `ordering` | `transaction_date`, `created_date`, `amount` or `id`; prefix `-` to reverse. Comma-separate for tie-breaks. Ordering by `transaction_date` is special-cased — see below. |
+| `page`, `page_size` | Standard pagination (`page_size` up to 500). |
 
 ### Investments — `apps/investments`
 
@@ -902,7 +919,7 @@ leaves the ledger consistent; the balance write is the same adjustment the
 
 ```bash
 cd backend
-python manage.py test                 # 181 tests, ~1s
+python manage.py test                 # 206 tests, ~1s
 python manage.py test apps.transactions
 python manage.py test apps.ops        # superuser console
 python manage.py test apps.accounts.tests.AccountIsolationTests
@@ -930,14 +947,18 @@ The suite focuses on the things that would be expensive to get wrong:
 | `apps/transactions/tests.py` | **Cross-user isolation**, balance effects for income/expense/transfer, revert on delete, `0.10 + 0.20` exactness, transfer/category/budget rules, foreign-currency rate requirement, atomic bulk insert, summary and monthly reporting. |
 | `apps/budgets/tests.py` | Date/amount validation, ownership, account-link scoping, status and overspend detection. |
 | `apps/investments/tests.py` | Symbol/quantity handling, valuation history, portfolio totals and conversion, per-kind grouping. |
+| `apps/transactions/tests.py` — `TransactionFilterTests`, `DescriptionSuggestionTests` | Date/amount/month filtering, search, `uncategorised`, ordering and filter combinations; description autocomplete ordering, prefix and account scoping, limit clamping, and that neither suggestions nor recent entries leak another user's data. |
 | `apps/transactions/test_importers.py` | CSV parsing (thousands separators, sign convention, junk rows), category case-merging, currency splitting, import-key uniqueness for field-identical rows, exact re-runs, balance reconciliation, and a 1,200-row insert that would trip a fixed SQLite batch size. |
 | `apps/ops/tests.py` | Superuser gate (anonymous, user and staff-only all rejected), operation registry and argument coercion (including a shell-injection-shaped key), safety policy (destructive blocked by default, read-only always allowed), audit-trail recording of successes *and* failures, `refresh_currencies` skipping when rates are fresh, integrity detection of balance drift and cross-tenant links, JSON-serialisability of the overview payload, and every tenant-admin guard. |
 
-Frontend checks are `npm run lint`, `npm run check:contracts` and `npm run build`
+Frontend checks are `npm run lint`, `npm run check:contracts`, `npm run test:dates`
+and `npm run build`
 (which runs the contract check first). `check:contracts` is a source-level guard
 that a data hook and its consumers agree on the name of the list property — the
 class of bug that crashed every list screen while lint and the bundler stayed
-happy. There is no component test runner yet — see the [roadmap](#roadmap). The
+happy, and `test:dates` runs the pure date helpers under a UTC-5 timezone so a
+day-shifting regression cannot come back unnoticed. There is no component test
+runner yet — see the [roadmap](#roadmap). The
 superuser console was additionally verified by driving the running app with a
 headless browser: signing in, switching tabs, running the integrity check from the
 UI and confirming a destructive operation is shown as blocked.
@@ -972,6 +993,7 @@ DATABASE_URL=postgresql://...@ep-xxx-pooler.eu-central-1.aws.neon.tech/budget?ss
 CORS_ALLOWED_ORIGINS=https://budget.vercel.app
 CSRF_TRUSTED_ORIGINS=https://budget.vercel.app
 EXCHANGE_API_KEY=<your key>
+DJANGO_TIME_ZONE=America/Guayaquil
 ```
 
 **Frontend** (Vercel/Netlify):
@@ -1044,6 +1066,44 @@ Either way, run `python manage.py check --deploy` before going live.
 * One file per resource area (`AccountsManager`, `TransactionsManager`, …), with
   forms and tables inline while they stay small.
 * Money is handled as a string. No arithmetic on amounts in the browser.
+* **Dates are always `DD/MM/YYYY`, day first** in text, and never derived with
+  `new Date(value).toLocaleDateString()`: that would let the browser reorder day and
+  month, and — because `new Date('2026-09-08')` means UTC midnight — it renders the
+  previous day for anyone behind UTC. `src/utils/format.js` owns the conversions:
+  `formatDate` for calendar dates, `formatDateTime` for timestamps, `toDateInput`
+  when filling an `<input type="date">`, and `today()`/`toIsoDate()` instead of
+  `toISOString().slice(0, 10)`. `npm run test:dates` locks this down under
+  `TZ=America/Guayaquil`, where the old behaviour was visibly wrong.
+* The transaction screen is laid out for repeated entry: one form for the whole
+  quick-entry block so Enter submits from any field, the account and date persist
+  between entries while amount and description reset, and descriptions autocomplete
+  from the user's own history (`/transactions/descriptions/`). Anything that could
+  grow unbounded — the list itself — is filtered and paginated on the server.
+* Description suggestions use a custom listbox (`components/ui/DescriptionInput.jsx`),
+  **not** a native `<datalist>`. Chrome rendered the option *label* (a usage count)
+  instead of the option *value*, so the user saw "365× used" rather than the
+  description. The custom list shows the description as the primary text and the
+  count as a small trailing meta, with arrow/Enter/Escape/Tab handling.
+* Saving an entry always confirms itself: the alert states what was stored, and the
+  row is pinned above the table for the current session. A ledger sorted
+  newest-first can legitimately place a just-saved entry on page 40, so "did it
+  save?" must never depend on finding it. If the selected period excludes the date,
+  the confirmation says so and offers a one-click "Show all time".
+* **Ordering by date means "newest month first, then most recently entered".**
+  `ordering=-transaction_date` is translated by
+  `apps/transactions/filters.py::TransactionOrderingFilter` into
+  `-date_month, -created_date, -id`, where `date_month` is a `TruncMonth`
+  annotation. The month stays primary so the historical record reads
+  chronologically — an imported batch and hand-entered rows for the same period
+  sit together instead of being interleaved by typing order — while the insertion
+  tie-break means an entry you just added leads a batch imported earlier for the
+  same month. A pure `-transaction_date` sort is *not* enough: an import puts
+  hundreds of rows on one date and the database is free to return equal keys in any
+  order. The screen offers Date (default), Recently added, and amount sorts, and
+  rows entered in the last 24 hours carry a small "new" badge.
+  This lives in an `OrderingFilter`, not a `FilterSet`, because DRF evaluates
+  `filterset_class` *before* the ordering backend — a FilterSet sees an empty
+  `order_by` and has nothing to translate.
 * `npm run lint` must pass; `npm run build` must succeed.
 
 ---

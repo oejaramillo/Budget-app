@@ -32,6 +32,7 @@ env = environ.Env(
     REFRESH_TOKEN_LIFETIME_DAYS=(int, 7),
     EXCHANGE_API_KEY=(str, ""),
     EXCHANGE_API_BASE_URL=(str, "https://v6.exchangerate-api.com/v6"),
+    DJANGO_TIME_ZONE=(str, "UTC"),
 )
 
 # Load backend/.env when present; real environment variables always win.
@@ -208,7 +209,13 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 # ---------------------------------------------------------------------------
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+
+# Timestamps (`created_date`, `last_updated`, ...) are stored in UTC and rendered in
+# this zone, so set it to where you actually are if you care about the wall-clock
+# time on those columns. Calendar dates (`transaction_date`) are stored as plain
+# dates and are never affected by this setting either way.
+TIME_ZONE = env("DJANGO_TIME_ZONE")
+
 USE_I18N = True
 USE_TZ = True
 

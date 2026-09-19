@@ -5,7 +5,7 @@ import { useCurrencies } from '../../hooks/useCurrencies'
 import { useForm } from '../../hooks/useForm'
 import { adjustAccountBalance } from '../../services/accountsService'
 import { ACCOUNT_TYPES } from '../../constants'
-import { formatDate, formatMoney } from '../../utils/format'
+import { formatDateTime, formatMoney } from '../../utils/format'
 import { Alert, DataTable, EmptyState } from '../ui/Feedback'
 import { SelectField, TextField } from '../ui/FormFields'
 import FormPanel from '../ui/FormPanel'
@@ -192,7 +192,7 @@ export default function AccountsManager() {
               </td>
               <td>{account.currency_detail?.code ?? account.currency}</td>
               <td>{account.institution || '—'}</td>
-              <td>{formatDate(account.created_date)}</td>
+              <td>{formatDateTime(account.created_date)}</td>
               <td>
                 <button type="button" className="btn btn-ghost" onClick={() => startEdit(account)}>
                   Edit

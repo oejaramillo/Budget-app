@@ -4,7 +4,7 @@ import { useBudgets } from '../../hooks/useBudgets'
 import { useAccounts } from '../../hooks/useAccounts'
 import { useCurrencies } from '../../hooks/useCurrencies'
 import { useForm } from '../../hooks/useForm'
-import { currentMonthRange, formatMoney, formatPercent } from '../../utils/format'
+import { currentMonthRange, formatDate, formatMoney, formatPercent, toDateInput } from '../../utils/format'
 import { Alert, DataTable, EmptyState, StatCard } from '../ui/Feedback'
 import { SelectField, TextField } from '../ui/FormFields'
 import FormPanel from '../ui/FormPanel'
@@ -71,8 +71,8 @@ export default function BudgetsManager() {
       min_amount: budget.min_amount,
       max_amount: budget.max_amount,
       currency: String(budget.currency),
-      start_date: budget.start_date,
-      end_date: budget.end_date,
+      start_date: toDateInput(budget.start_date),
+      end_date: toDateInput(budget.end_date),
       accounts: (budget.accounts ?? []).map(String),
     })
   }
@@ -238,7 +238,7 @@ export default function BudgetsManager() {
                 <tr key={budget.id}>
                   <td>{budget.name}</td>
                   <td>
-                    {budget.start_date} → {budget.end_date}
+                    {formatDate(budget.start_date)} → {formatDate(budget.end_date)}
                   </td>
                   <td className="numeric">{formatMoney(budget.max_amount, code)}</td>
                   <td className="numeric">{formatMoney(spent, code)}</td>

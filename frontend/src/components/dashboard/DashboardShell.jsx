@@ -18,11 +18,12 @@ import TransactionsManager from '../transactions/TransactionsManager'
  * usability choice; `/api/v1/ops/` enforces `is_superuser` regardless.
  */
 const TABS = [
+  // Transactions second: logging an entry is the app's most frequent action.
   { id: 'overview', label: 'Overview' },
-  { id: 'accounts', label: 'Accounts' },
   { id: 'transactions', label: 'Transactions' },
-  { id: 'categories', label: 'Categories' },
+  { id: 'accounts', label: 'Accounts' },
   { id: 'budgets', label: 'Budgets' },
+  { id: 'categories', label: 'Categories' },
   { id: 'investments', label: 'Investments' },
   { id: 'currencies', label: 'Currencies' },
   { id: 'superuser', label: '⚙ Superuser', superuserOnly: true },

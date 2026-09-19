@@ -9,7 +9,8 @@
     "build": "npm run check:contracts && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "check:contracts": "node scripts/check-hook-contracts.mjs"
+    "check:contracts": "node scripts/check-hook-contracts.mjs",
+    "test:dates": "TZ=America/Guayaquil node --test \"tests/**/*.test.mjs\""
   },
   "dependencies": {
     "@tanstack/react-query": "^5.84.2",

@@ -9,7 +9,7 @@ import {
 } from '../../hooks/useOps'
 import { describeApiError } from '../../api'
 import { useAuthContext } from '../../hooks/useAuth'
-import { formatDate } from '../../utils/format'
+import { formatDateTime } from '../../utils/format'
 import { Alert, DataTable, EmptyState, StatCard } from '../ui/Feedback'
 import { TextField } from '../ui/FormFields'
 
@@ -198,8 +198,8 @@ export default function UsersAdmin() {
                 <td className="numeric">
                   {tenant.account_count} acct · {tenant.transaction_count} tx
                 </td>
-                <td>{formatDate(tenant.date_joined)}</td>
-                <td>{tenant.last_login ? formatDate(tenant.last_login) : 'never'}</td>
+                <td>{formatDateTime(tenant.date_joined)}</td>
+                <td>{tenant.last_login ? formatDateTime(tenant.last_login) : 'never'}</td>
                 <td>
                   <button
                     type="button"

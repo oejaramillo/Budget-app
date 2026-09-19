@@ -116,7 +116,9 @@ class Transaction(models.Model):
     )
 
     class Meta:
-        ordering = ["-transaction_date", "-created_date"]
+        # Same day → most recently entered first. `id` breaks ties between rows
+        # inserted in the same statement (an import), where created_date is equal.
+        ordering = ["-transaction_date", "-created_date", "-id"]
         constraints = [
             models.CheckConstraint(
                 condition=Q(amount__gt=0), name="transaction_amount_positive"

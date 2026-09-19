@@ -348,3 +348,69 @@ h1, h2, h3, h4, h5, h6 {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
 }
+
+/* Description autocomplete ------------------------------------------------- */
+.autocomplete {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--white);
+  border: 1px solid #e9ecef;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-medium);
+}
+
+.autocomplete__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.autocomplete__option.is-highlighted {
+  background-color: var(--light-gray);
+}
+
+.autocomplete__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autocomplete__meta {
+  flex: 0 0 auto;
+  color: var(--medium-gray);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The entry that was just saved, pinned above the current page -------------- */
+.row-just-added > td {
+  background-color: #e6f7ef;
+  border-bottom: 1px solid #b7e4cd;
+  font-weight: 500;
+}
+
+/* Marker for entries added in the last day ---------------------------------- */
+.badge-new {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background-color: var(--success-green);
+  color: var(--white);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { useOpsOverview, useOpsSettings, useUpdateOpsSettings } from '../../hooks/useOps'
 import { describeApiError } from '../../api'
-import { formatDate } from '../../utils/format'
+import { formatDateTime } from '../../utils/format'
 import { Alert, DataTable, EmptyState, StatCard } from '../ui/Feedback'
 
 function severityClass(severity) {
@@ -57,7 +57,7 @@ function SafetySettings() {
         </label>
       ))}
       <small className="text-muted">
-        Last changed {formatDate(settings.data?.updated_at)}.
+        Last changed {formatDateTime(settings.data?.updated_at)}.
       </small>
     </div>
   )
@@ -105,7 +105,7 @@ export default function OpsOverview() {
           )}
           <p className="mb-1">
             Last refresh:{' '}
-            <strong>{rates.last_refresh_at ? formatDate(rates.last_refresh_at) : 'never'}</strong>
+            <strong>{rates.last_refresh_at ? formatDateTime(rates.last_refresh_at) : 'never'}</strong>
           </p>
           <p className="mb-1">
             Currencies older than {rates.max_age_hours}h: <strong>{rates.stale_count}</strong>

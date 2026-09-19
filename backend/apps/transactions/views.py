@@ -1,16 +1,18 @@
 from datetime import date
 
 from django.db import transaction as db_transaction
-from django.db.models import Count, Sum
+from django.db.models import Count, Max, Min, Sum
 from django.db.models.functions import TruncMonth
 from django.utils.dateparse import parse_date
-from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.currencies.models import Currency
 
+from .filters import TransactionFilter, TransactionOrderingFilter
 from .models import Category, Transaction
 from .serializers import CategorySerializer, TransactionSerializer
 from .services import create_transaction, delete_transaction, update_transaction
@@ -37,20 +39,19 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class TransactionViewSet(viewsets.ModelViewSet):
     """CRUD for transactions with a per-user queryset and balance side effects."""
 
-
-class TransactionViewSet(viewsets.ModelViewSet):
-
     serializer_class = TransactionSerializer
-    filterset_fields = [
-        "account",
-        "destination_account",
-        "category",
-        "budget",
-        "transaction_type",
-        "transaction_date",
+    filterset_class = TransactionFilter
+    # Listed after the project defaults so the ledger-specific ordering wins.
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        TransactionOrderingFilter,
     ]
     search_fields = ["description", "account__name", "category__name"]
-    ordering_fields = ["transaction_date", "amount", "created_date"]
+    # `created_date` is offered so the screen can order by "most recently entered",
+    # which is not the same as "newest transaction date": a batch entered today for
+    # last month would otherwise be buried.
+    ordering_fields = ["transaction_date", "amount", "created_date", "id"]
 
     def get_queryset(self):
         return (
@@ -174,6 +175,87 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         ordered = sorted(buckets.values(), key=lambda b: b["month"], reverse=True)[:months]
         return Response(ordered)
+
+    @action(detail=False, methods=["get"], url_path="descriptions")
+    def descriptions(self, request):
+        """Distinct descriptions the user has typed before, most used first.
+
+        This is what powers autocomplete in the logging form. Paying a
+        merchant/description twice is the norm, so repeating a previous entry with
+        one keystroke is the difference between a form you tolerate and one you use.
+
+        Query parameters:
+            `q`       case-insensitive substring filter (the text typed so far)
+            `account` restrict to descriptions used on one account
+            `limit`   maximum suggestions returned (default 20, max 100)
+        """
+        try:
+            limit = int(request.query_params.get("limit", 20))
+        except (TypeError, ValueError):
+            raise ValidationError({"limit": "Must be an integer."})
+        limit = max(1, min(limit, 100))
+
+        queryset = self.get_queryset().exclude(description="")
+        account = request.query_params.get("account")
+        if account:
+            queryset = queryset.filter(account_id=account)
+
+        term = (request.query_params.get("q") or "").strip()
+        if term:
+            queryset = queryset.filter(description__icontains=term)
+
+        rows = (
+            queryset.values("description")
+            .annotate(uses=Count("id"), last_used=Max("transaction_date"))
+            .order_by("-uses", "-last_used")
+        )
+        # Slicing after ordering keeps the aggregate on the database and the
+        # payload small; the limit is already clamped above.
+        payload = [
+            {
+                "description": row["description"],
+                "uses": row["uses"],
+                "last_used": row["last_used"],
+            }
+            for row in rows[:limit]
+        ]
+        return Response(payload)
+
+    @action(detail=False, methods=["get"], url_path="recent")
+    def recent(self, request):
+        """The user's most recent transactions, newest first.
+
+        Used by the "repeat a recent entry" affordance in the logging form. Mirrors
+        the list endpoint but ignores filters and always returns a small page.
+        """
+        try:
+            limit = int(request.query_params.get("limit", 8))
+        except (TypeError, ValueError):
+            raise ValidationError({"limit": "Must be an integer."})
+        limit = max(1, min(limit, 25))
+
+        queryset = self.get_queryset().order_by("-transaction_date", "-created_date")[:limit]
+        return Response(self.get_serializer(queryset, many=True).data)
+
+    @action(detail=False, methods=["get"], url_path="stats")
+    def stats(self, request):
+        """A few facts about the user's ledger, for the logging screen header.
+
+        Deliberately small: the point is to orient the user ("4,441 entries, back to
+        December 2018, 3,796 to categorise"), not to duplicate the reporting
+        endpoints.
+        """
+        queryset = self.get_queryset()
+        bounds = queryset.aggregate(first=Min("transaction_date"), last=Max("transaction_date"))
+        return Response(
+            {
+                "count": queryset.count(),
+                "first_date": bounds["first"],
+                "last_date": bounds["last"],
+                "uncategorised": queryset.filter(category__isnull=True).count(),
+                "without_description": queryset.filter(description="").count(),
+            }
+        )
 
     @action(detail=False, methods=["post"], url_path="bulk")
     def bulk_create(self, request):

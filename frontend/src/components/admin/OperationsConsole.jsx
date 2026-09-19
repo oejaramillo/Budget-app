@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useOperations, useRunHistory, useRunOperation } from '../../hooks/useOps'
 import { describeApiError } from '../../api'
 import { OPERATION_SAFETY } from '../../constants'
-import { formatDate } from '../../utils/format'
+import { formatDateTime } from '../../utils/format'
 import { Alert, DataTable, EmptyState } from '../ui/Feedback'
 import { SelectField, TextField } from '../ui/FormFields'
 
@@ -267,7 +267,7 @@ export function RunHistory() {
     >
       {(history.data ?? []).map((run) => (
         <tr key={run.id}>
-          <td>{formatDate(run.started_at)}</td>
+          <td>{formatDateTime(run.started_at)}</td>
           <td>{run.operation}</td>
           <td className={statusTone(run.status)}>{run.status}</td>
           <td>{run.triggered_by_username ?? '—'}</td>

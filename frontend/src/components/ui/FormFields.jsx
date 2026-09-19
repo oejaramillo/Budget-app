@@ -54,6 +54,7 @@ export function TextField({
   required = false,
   disabled = false,
   placeholder,
+  autoFocus = false,
 }) {
   return (
     <Field label={label} htmlFor={name} error={error} hint={hint}>
@@ -68,6 +69,7 @@ export function TextField({
         required={required}
         disabled={disabled}
         placeholder={placeholder}
+        autoFocus={autoFocus}
         aria-invalid={Boolean(error)}
       />
     </Field>

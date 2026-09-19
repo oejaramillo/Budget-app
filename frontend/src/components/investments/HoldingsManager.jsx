@@ -5,7 +5,7 @@ import { useAccounts } from '../../hooks/useAccounts'
 import { useCurrencies } from '../../hooks/useCurrencies'
 import { useForm } from '../../hooks/useForm'
 import { describeApiError } from '../../api'
-import { formatMoney, formatPercent, today } from '../../utils/format'
+import { formatMoney, formatPercent, toDateInput, today } from '../../utils/format'
 import { Alert, DataTable, EmptyState, StatCard } from '../ui/Feedback'
 import { SelectField, TextField } from '../ui/FormFields'
 import FormPanel from '../ui/FormPanel'
@@ -108,7 +108,7 @@ export default function HoldingsManager() {
       cost_basis: holding.cost_basis,
       currency: String(holding.currency),
       account: holding.account ? String(holding.account) : '',
-      opened_date: holding.opened_date ?? '',
+      opened_date: toDateInput(holding.opened_date),
       notes: holding.notes ?? '',
     })
   }

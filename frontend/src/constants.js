@@ -25,6 +25,9 @@ export const ENDPOINTS = {
   budgets: `${API_PREFIX}/budgets/`,
   categories: `${API_PREFIX}/categories/`,
   transactions: `${API_PREFIX}/transactions/`,
+  transactionDescriptions: `${API_PREFIX}/transactions/descriptions/`,
+  transactionRecent: `${API_PREFIX}/transactions/recent/`,
+  transactionStats: `${API_PREFIX}/transactions/stats/`,
   holdings: `${API_PREFIX}/holdings/`,
   valuations: `${API_PREFIX}/valuations/`,
 }
