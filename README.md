@@ -26,11 +26,12 @@ into the currency you actually think in.
 11. [Money and multi-currency rules](#money-and-multi-currency-rules)
 12. [Superuser operations console](#superuser-operations-console)
 13. [Security and multi-tenancy](#security-and-multi-tenancy)
-14. [Testing](#testing)
-15. [Deployment](#deployment)
-16. [Project conventions](#project-conventions)
-17. [Roadmap](#roadmap)
-18. [Troubleshooting](#troubleshooting)
+14. [Importing an existing ledger](#importing-an-existing-ledger)
+15. [Testing](#testing)
+16. [Deployment](#deployment)
+17. [Project conventions](#project-conventions)
+18. [Roadmap](#roadmap)
+19. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -148,7 +149,8 @@ Budget-app/
 │       ├── currencies/           Currency, rate snapshots/history, refresh command
 │       ├── accounts/             Account + balances/net-worth endpoints
 │       ├── budgets/              Budget + status endpoint
-│       ├── transactions/         Category, Transaction, services.py, reports
+│       ├── transactions/         Category, Transaction, services.py, reports,
+│       │                         importers.py + import_ledger command
 │       ├── investments/          Holding, Valuation, portfolio endpoints
 │       └── ops/                  superuser-only operations console and audit log
 └── frontend/
@@ -163,6 +165,7 @@ Budget-app/
         ├── contexts/AuthContext.jsx
         ├── services/             one module per resource
         ├── hooks/                React Query wrappers + useForm
+        ├── scripts/              check-hook-contracts.mjs (hook/consumer guard)
         ├── components/
         │   ├── ui/               Field, Alert, StatCard, DataTable, FormPanel
         │   ├── auth/             LandingPage, AuthPanel
@@ -263,7 +266,7 @@ to SQLite and a development secret, so `migrate` and `runserver` always work. Se
 cd frontend
 cp .env.example .env      # VITE_API_URL=http://127.0.0.1:8000 by default
 npm install
-pm run dev -- --port 8081             # http://localhost:5173 due that port 80 is usually taken 
+npm run dev -- --port 8081             # http://localhost:5173 due that port 80 is usually taken 
 ```
 
 Open <http://localhost:5173>, create an account and start logging.
@@ -780,11 +783,126 @@ print(OperationRun.objects.filter(started_at__lt=cutoff).delete())
 
 ---
 
+## Importing an existing ledger
+
+Moving onto this app usually means bringing years of history with it. The
+`import_ledger` command ingests a ledger export (the semicolon-delimited CSV this
+project uses) into accounts, categories, budgets and transactions.
+
+```bash
+python manage.py import_ledger path/to/export.csv --dry-run   # plan only (default)
+python manage.py import_ledger path/to/export.csv --commit    # write it
+```
+
+The dry run is the default: it parses and validates the whole file, prints what it
+would create and touches nothing. Read it before committing.
+
+### Expected format
+
+```
+fecha;monto;categoría;cuenta;presupuesto;descripción;moneda;número de transacción;
+05/12/2018;23.79;Inicio;Efectivo;;;Dólar estadounidense;;
+15/10/2024;-48.74;Desconocido;IDB Federal Bank;;something;Dólar estadounidense;sospechoso;
+```
+
+| Column | Meaning |
+| --- | --- |
+| `fecha` | `DD/MM/YYYY` |
+| `monto` | Signed amount: negative is an expense, positive is income. Both `-4,800.00` and `-4800.00` parse. |
+| `categoría` | Category name; blank becomes a `Sin categoría` category |
+| `cuenta` | Account name; whitespace is collapsed |
+| `presupuesto` | Optional budget name |
+| `descripción` | Free text |
+| `moneda` | Spanish currency name, mapped to ISO 4217 |
+| `número de transacción` | Mostly blank; when set (e.g. `sospechoso`) the note is appended to the description |
+
+### Options
+
+| Flag | Effect |
+| --- | --- |
+| `--dry-run` | Parse and report only. This is also what happens without `--commit`. |
+| `--commit` | Actually write. |
+| `--user NAME` | Owner of the imported data. Defaults to the user with id 1. |
+| `--reset` | Delete that user's existing transactions first. |
+| `--skip-existing` | Allow running against a user that already has transactions. |
+| `--no-reconcile` | Leave balances as the raw transaction sum instead of matching the CSV closing balance. |
+| `--lenient` | Skip rows with unparseable values instead of aborting. |
+
+### What it does to the data
+
+* **Signs become types.** `Transaction.amount` is always positive, so a negative CSV
+  amount becomes an `expense` and a positive one an `income`.
+* **`Inicio` rows are opening balances.** They are imported as income entries,
+  because that is what they are, and the account balance is reconciled to the CSV's
+  closing sum afterwards.
+* **One account per (name, currency).** An account holding two currencies cannot be
+  represented, so `Efectivo` becomes `Efectivo (USD)`, `Efectivo (ARS)`, and so on.
+  The export makes the split natural: the non-USD rows are one contiguous period.
+* **Case-only category duplicates are merged** (the real file has `ropa` next to
+  `Ropa`). The most common correctly-capitalised spelling wins, so the user's own
+  naming is preserved.
+* **Budgets are created from the observed span.** The export records no limits, so a
+  budget's `max_amount` is what was actually spent in it: it starts fully used
+  rather than inventing a ceiling.
+* **Transfers cannot be linked.** `Transferencia cuentas` and `Cambio de moneda`
+  rows carry no destination account, so they import as income or expense entries.
+  Ledger totals are unaffected; they simply are not modelled as transfers.
+* **Balances are reconciled explicitly.** With reconciliation on (the default) each
+  account balance is set to the closing balance the CSV implies. When that differs
+  from the sum of imported transactions, the gap is printed as an adjustment, so
+  capital the ledger cannot explain is visible rather than hidden.
+
+### Exact re-runs
+
+Every imported row stores a deterministic `import_key`, so re-importing the same
+file creates nothing:
+
+```
+$ python manage.py import_ledger export.csv --commit
+  transactions created          4441
+$ python manage.py import_ledger export.csv --commit --skip-existing
+  transactions created          0
+  transactions already present  4441
+```
+
+The key includes the row's position in the file *and* its content. Position matters:
+a real export can contain rows identical in every field that are genuinely separate
+transactions (four `Runpod` charges of 25.00 on one day). Hashing content alone
+silently collapsed 46 such rows and made every affected balance disagree with the
+source file — there is a regression test for it.
+
+### Verify an import
+
+The `integrity_check` operation re-derives each balance from the ledger and reports
+drift, which makes it the fastest way to confirm an import landed exactly:
+
+```bash
+python manage.py shell -c "from apps.ops.services import check_data_integrity; print(check_data_integrity()['message'])"
+# No issues found.
+```
+
+Or reconcile against the source file independently:
+
+```bash
+python manage.py shell -c "
+from django.db.models import Sum
+from apps.transactions.models import Transaction
+print(Transaction.objects.count(), Transaction.objects.aggregate(t=Sum('amount'))['t'])
+"
+```
+
+The importer writes with `bulk_create` and then sets each account balance once,
+rather than going through the service layer thousands of times. That is faster and
+leaves the ledger consistent; the balance write is the same adjustment the
+`adjust-balance` endpoint performs, so the integrity check stays clean.
+
+---
+
 ## Testing
 
 ```bash
 cd backend
-python manage.py test                 # 147 tests, ~1s
+python manage.py test                 # 181 tests, ~1s
 python manage.py test apps.transactions
 python manage.py test apps.ops        # superuser console
 python manage.py test apps.accounts.tests.AccountIsolationTests
@@ -812,10 +930,14 @@ The suite focuses on the things that would be expensive to get wrong:
 | `apps/transactions/tests.py` | **Cross-user isolation**, balance effects for income/expense/transfer, revert on delete, `0.10 + 0.20` exactness, transfer/category/budget rules, foreign-currency rate requirement, atomic bulk insert, summary and monthly reporting. |
 | `apps/budgets/tests.py` | Date/amount validation, ownership, account-link scoping, status and overspend detection. |
 | `apps/investments/tests.py` | Symbol/quantity handling, valuation history, portfolio totals and conversion, per-kind grouping. |
+| `apps/transactions/test_importers.py` | CSV parsing (thousands separators, sign convention, junk rows), category case-merging, currency splitting, import-key uniqueness for field-identical rows, exact re-runs, balance reconciliation, and a 1,200-row insert that would trip a fixed SQLite batch size. |
 | `apps/ops/tests.py` | Superuser gate (anonymous, user and staff-only all rejected), operation registry and argument coercion (including a shell-injection-shaped key), safety policy (destructive blocked by default, read-only always allowed), audit-trail recording of successes *and* failures, `refresh_currencies` skipping when rates are fresh, integrity detection of balance drift and cross-tenant links, JSON-serialisability of the overview payload, and every tenant-admin guard. |
 
-Frontend checks are `npm run lint` and `npm run build` (Vite fails on unresolved
-imports). There is no component test runner yet — see the [roadmap](#roadmap). The
+Frontend checks are `npm run lint`, `npm run check:contracts` and `npm run build`
+(which runs the contract check first). `check:contracts` is a source-level guard
+that a data hook and its consumers agree on the name of the list property — the
+class of bug that crashed every list screen while lint and the bundler stayed
+happy. There is no component test runner yet — see the [roadmap](#roadmap). The
 superuser console was additionally verified by driving the running app with a
 headless browser: signing in, switching tabs, running the integrity check from the
 UI and confirming a destructive operation is shown as blocked.

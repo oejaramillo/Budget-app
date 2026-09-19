@@ -35,6 +35,17 @@ export default function Dashboard({ targetCurrency }) {
 
   const convertedTotal = worth?.converted_total ?? null
   const perCurrency = worth?.per_currency ?? []
+  const hasConvertedTotal = convertedTotal !== null && convertedTotal !== undefined
+
+  /**
+   * When no target currency is selected the API returns raw per-currency totals.
+   * Show the principal currency's total rather than whichever currency happens to
+   * sort first, so the headline number is the one the user thinks in. Fall back to
+   * the largest holding if no principal currency is configured.
+   */
+  const primaryRow =
+    perCurrency.find((row) => row.currency === principal?.code) ??
+    [...perCurrency].sort((a, b) => Number(b.total) - Number(a.total))[0]
 
   if (summary.isError || netWorth.isError) {
     return <Alert>Could not load the dashboard. Check that the backend is reachable.</Alert>
@@ -46,15 +57,15 @@ export default function Dashboard({ targetCurrency }) {
         <StatCard
           label="Net worth"
           value={
-            convertedTotal !== null && convertedTotal !== undefined
+            hasConvertedTotal
               ? formatMoney(convertedTotal, displayCurrency)
-              : formatMoney(perCurrency[0]?.total, perCurrency[0]?.currency)
+              : formatMoney(primaryRow?.total, primaryRow?.currency)
           }
           hint={
-            convertedTotal !== null && convertedTotal !== undefined
+            hasConvertedTotal
               ? `Converted to ${displayCurrency}`
               : perCurrency.length > 1
-                ? 'Multiple currencies — pick a target in Currencies'
+                ? `${perCurrency.length} currencies — pick a target in the header to convert`
                 : undefined
           }
         />

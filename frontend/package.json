@@ -6,9 +6,10 @@
   "description": "React single-page client for the Budget App API",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run check:contracts && vite build",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:contracts": "node scripts/check-hook-contracts.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.84.2",

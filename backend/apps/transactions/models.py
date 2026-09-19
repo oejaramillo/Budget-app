@@ -108,6 +108,12 @@ class Transaction(models.Model):
     )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
+    #: Deterministic identity for rows brought in by the CSV importer, so the same
+    #: export can be re-imported without duplicating anything. Null for rows created
+    #: through the API, which get their identity from the user instead.
+    import_key = models.CharField(
+        max_length=64, null=True, blank=True, unique=True, editable=False
+    )
 
     class Meta:
         ordering = ["-transaction_date", "-created_date"]

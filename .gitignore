@@ -53,6 +53,11 @@ frontend/.vite/
 .DS_Store
 Thumbs.db
 
+# --- Personal data -----------------------------------------------------------
+# The ledger export holds real financial history; it is imported, not tracked.
+real_data.csv
+*.import.csv
+
 # --- Notebooks / scratch -----------------------------------------------------
 *.ipynb
 .ipynb_checkpoints/
