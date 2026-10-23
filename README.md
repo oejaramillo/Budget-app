@@ -24,14 +24,15 @@ into the currency you actually think in.
 9. [Common commands](#common-commands)
 10. [API reference](#api-reference)
 11. [Money and multi-currency rules](#money-and-multi-currency-rules)
-12. [Superuser operations console](#superuser-operations-console)
-13. [Security and multi-tenancy](#security-and-multi-tenancy)
-14. [Importing an existing ledger](#importing-an-existing-ledger)
-15. [Testing](#testing)
-16. [Deployment](#deployment)
-17. [Project conventions](#project-conventions)
-18. [Roadmap](#roadmap)
-19. [Troubleshooting](#troubleshooting)
+12. [Spending analytics](#spending-analytics)
+13. [Superuser operations console](#superuser-operations-console)
+14. [Security and multi-tenancy](#security-and-multi-tenancy)
+15. [Importing an existing ledger](#importing-an-existing-ledger)
+16. [Testing](#testing)
+17. [Deployment](#deployment)
+18. [Project conventions](#project-conventions)
+19. [Roadmap](#roadmap)
+20. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -44,7 +45,7 @@ into the currency you actually think in.
 | Transactions | Income, expense and transfers. Keyboard-first logging with description autocomplete from your own history, server-side filtering (period presets, account, type, search), pagination, and in-place row editing to fix a mistake. Explicit exchange rate when the transaction currency differs from the account. |
 | Budgets | Period-based envelopes with a minimum and maximum, linked accounts, and live spend/remaining/percentage figures. |
 | Investments | Holdings (stock, ETF, fund, bond, crypto, real estate, other) with quantity, cost basis and dated valuations, so gains are measured against a real value history. |
-| Reporting | Period summary (income, expenses, net, per-category breakdown), monthly trend, net worth per currency, and portfolio totals — all convertible into a chosen currency. |
+| Reporting | A spending dashboard (trends, category mix, pace, anomalies, committed costs), period summary, monthly trend, net worth per currency, and portfolio totals — all convertible into a chosen currency. |
 | Auth | Registration, JWT login, transparent access-token refresh, `/auth/me/` profile, staff-only administration. |
 | Ops | Health endpoint, request throttling, pagination, audit trail of rate refreshes, Django admin, and a **superuser console** for maintenance and tenant administration. |
 
@@ -152,7 +153,8 @@ Budget-app/
 │       ├── transactions/         Category, Transaction, services.py, reports,
 │       │                         importers.py + import_ledger command
 │       ├── investments/          Holding, Valuation, portfolio endpoints
-│       └── ops/                  superuser-only operations console and audit log
+│       ├── ops/                  superuser-only operations console and audit log
+│       └── analytics/            spending analytics (no models: pure aggregation)
 └── frontend/
     ├── index.html
     ├── package.json
@@ -171,6 +173,7 @@ Budget-app/
         │   ├── auth/             LandingPage, AuthPanel
         │   ├── dashboard/        DashboardShell (tabs), Dashboard (overview)
         │   ├── admin/            SuperuserHub, OpsOverview, OperationsConsole, UsersAdmin
+        │   ├── charts/           hand-built SVG charts (no charting dependency)
         │   └── accounts|transactions|categories|budgets|investments|currencies/
         └── styles/globals.css
 ```
@@ -510,13 +513,15 @@ Transaction list filters (`GET /transactions/`):
 
 | Parameter | Meaning |
 | --- | --- |
-| `account`, `destination_account`, `category`, `budget`, `transaction_type` | Exact match. |
+| `account` | Everything that moves money on that account: rows where it is the source **or** a transfer's destination. |
+| `destination_account` | Only incoming transfers to that account. |
+| `category`, `budget`, `transaction_type` | Exact match. |
 | `date_from`, `date_to` | Inclusive date bounds. |
 | `month` | Shorthand for one period, e.g. `?month=2026-03`. |
 | `amount_min`, `amount_max` | Amount bounds. |
 | `uncategorised=true` | Entries with no category — the "needs tidying" list. |
 | `search` | Matches description, account name and category name. |
-| `ordering` | `transaction_date`, `created_date`, `amount` or `id`; prefix `-` to reverse. Comma-separate for tie-breaks. Ordering by `transaction_date` is special-cased — see below. |
+| `ordering` | `transaction_date`, `created_date`, `amount` or `id`; prefix `-` to reverse. Comma-separate for tie-breaks. Rows with equal values are additionally ordered by `-created_date, -id` so pagination is stable — see below. |
 | `page`, `page_size` | Standard pagination (`page_size` up to 500). |
 
 ### Investments — `apps/investments`
@@ -529,6 +534,22 @@ Transaction list filters (`GET /transactions/`):
 | GET | `/holdings/history/` | Portfolio value per valuation date. |
 | GET/POST | `/valuations/` | List / create valuations. |
 | GET/PUT/PATCH/DELETE | `/valuations/{id}/` | Retrieve / update / delete. |
+
+### Analytics — `apps/analytics`
+
+Read-only aggregation over the user's own transactions. Every response is scoped to
+the requesting user, and every figure is split into `consumption` (money actually
+spent) and `money_movement` (transfers, loans, currency exchange) — see
+[Spending analytics](#spending-analytics) for why that separation matters.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/analytics/dashboard/?currency=&months=` | Everything the dashboard needs in one request: totals, comparisons, outlook, categories, trend series, weekday profile, recurring costs and insights. |
+| GET | `/analytics/period/?granularity=month\|quarter\|year&anchor=&currency=` | Totals and categories for one period with the previous period and the same period a year earlier. |
+| GET | `/analytics/trend/?months=&currency=` | Monthly income/consumption series, including months with no activity. |
+| GET | `/analytics/categories/?months=&currency=` | Per-category consumption over time, largest categories plus an "other" bucket. |
+| GET | `/analytics/recurring/?currency=` | Categories appearing in ≥70% of recent months with their average and variation. |
+| GET | `/analytics/spending/?currency=` | Running-month pace, projection to month end, and how it compares with the user's median month. |
 
 ### Superuser console — `apps/ops`
 
@@ -607,6 +628,108 @@ same browser session.
    `adjust-balance` for an opening balance.
 7. **One principal currency.** A partial unique index guarantees at most one
    currency has `principal=True`.
+8. **A transfer is one row with two balance effects.** The row's `account` is the
+   source and `destination_account` the receiver; the service debits the first and
+   credits the second. There is deliberately no second "income" row — that would
+   double-count the movement in totals and reports. The transaction list shows the
+   same row from either account's side: filter by the destination and it appears
+   with `from <source>` and a positive, green amount.
+
+---
+
+## Spending analytics
+
+The Overview tab answers four questions in order: **how much am I spending, is that
+normal for me, where is it going, and what is changing.** Everything is compared
+with your own history rather than an external target, because "too much" only means
+something relative to what you normally do.
+
+### Consumption is not the same as expenses
+
+This is the single most important idea in the dashboard, and it comes from the data
+rather than from theory. In this ledger, **just over 47% of recorded expenses are
+money movement**:
+
+| Category | Recorded as | USD |
+| --- | --- | --- |
+| Transferencia cuentas | expense | 64,676 |
+| Préstamos | expense | 39,271 |
+| Cambio de moneda | expense | 5,988 |
+| Ajuste, Inversión, Especulación | expense | 3,069 |
+| **Money movement** | | **113,003** |
+| **Real consumption** | | **125,779** |
+
+A transfer to your own savings account, a loan repayment and a currency exchange all
+leave net worth unchanged. Adding them to groceries would overstate spending by
+almost half, and every conclusion drawn from the dashboard would be wrong. So every
+figure is reported three ways — `expenses` (everything), `consumption` (what was
+spent) and `money_movement` (the rest) — and the behavioural views (weekday profile,
+top payees, category charts) use consumption only.
+
+The list is configurable, because category names are personal:
+
+```python
+# backend/backend/settings/base.py
+ANALYTICS_MONEY_MOVEMENT_CATEGORIES = [
+    "Transferencia cuentas", "Cambio de moneda", "Préstamos",
+    "Inversión", "Especulación", "Ajuste", "Aportes colectivos",
+]
+```
+
+### Comparisons use complete periods
+
+A month that is three days old cannot be compared with a finished one. Period deltas
+use the **last complete** period, and the running period is reported separately with
+a projection:
+
+* **current** — the month to date,
+* **compared_with** — the previous *complete* month (or quarter/year),
+* **same_period_last_year** — the same window a year earlier, for seasonality.
+
+The pace meter compares *spend per elapsed day* against the **median** of the last 12
+complete months, and marks the month `high` only when the projection is ≥20% above
+that median (`low` at ≤20% below), so a single unusual month does not trigger a
+false alarm.
+
+### What is on the page
+
+| Panel | Question it answers |
+| --- | --- |
+| Four KPIs | How much this month, income, net saved, average per day — each with the change against the previous period. |
+| Pace meter | Where this month will land at the current rate, against your own median month, with the amount left to stay inside it. |
+| What stands out | Plain-language insights with a tone: biggest rise, biggest fall, share that is money movement, steadiest cost, heaviest weekday, three-month momentum, savings rate, biggest month. |
+| Income and spending | Month by month, with a savings-rate line. A **spending only** mode rescales the chart, because one large income month flattens every spending bar. |
+| Where the money went | Donut of consumption by category, current period. |
+| Against last period | Grouped bars per category with the previous period ghosted behind and the percentage change printed. |
+| Category mix over time | Stacked bars, largest categories plus "other". Answers "is the total rising because everything rises, or one thing?" Click a category to isolate. |
+| When you spend | Spending by weekday, with the average marked, so "I spend too much on Mondays" becomes measurable. |
+| Committed costs | Categories present in ≥70% of the last 12 months with their average, range and variation — the costs that need a decision rather than willpower. |
+| Largest individual payees | Top descriptions over 12 months, with frequency and average. |
+| Money movement | The excluded outflows, surfaced deliberately so nothing looks hidden. |
+
+### Charts are hand-built SVG
+
+`frontend/src/components/charts/` contains six chart types built directly on SVG —
+no charting dependency. Six chart types from a library would add 100–200 kB; these
+add about **7 kB gzipped**, and they share the money and date formatting used
+everywhere else, so a value reads identically in a table and on a chart. They are
+responsive via `ResizeObserver`, and axis ticks snap to round numbers.
+
+### Currency handling
+
+Analytics report **one currency at a time**, defaulting to the principal currency,
+and the dashboard offers a switch between the currencies that actually have data.
+Amounts in other currencies are **excluded rather than converted**: the stored
+`exchange_rate` values are single historical snapshots, so converting 2018 spending
+at a 2026 rate would be fabrication.
+
+### Adding to it
+
+`apps/analytics/services.py` holds the aggregation, `views.py` is a thin layer over
+it, and there are no models — nothing here writes. To add a panel, add a function to
+`services.py` and call it from `build_dashboard`; the tests in
+`apps/analytics/tests.py` show the patterns (fixed dates passed explicitly so the
+time-dependent logic is deterministic).
 
 ---
 
@@ -919,7 +1042,7 @@ leaves the ledger consistent; the balance write is the same adjustment the
 
 ```bash
 cd backend
-python manage.py test                 # 206 tests, ~1s
+python manage.py test                 # 241 tests, ~1s
 python manage.py test apps.transactions
 python manage.py test apps.ops        # superuser console
 python manage.py test apps.accounts.tests.AccountIsolationTests
@@ -949,6 +1072,7 @@ The suite focuses on the things that would be expensive to get wrong:
 | `apps/investments/tests.py` | Symbol/quantity handling, valuation history, portfolio totals and conversion, per-kind grouping. |
 | `apps/transactions/tests.py` — `TransactionFilterTests`, `DescriptionSuggestionTests` | Date/amount/month filtering, search, `uncategorised`, ordering and filter combinations; description autocomplete ordering, prefix and account scoping, limit clamping, and that neither suggestions nor recent entries leak another user's data. |
 | `apps/transactions/test_importers.py` | CSV parsing (thousands separators, sign convention, junk rows), category case-merging, currency splitting, import-key uniqueness for field-identical rows, exact re-runs, balance reconciliation, and a 1,200-row insert that would trip a fixed SQLite batch size. |
+| `apps/analytics/tests.py` | The consumption/money-movement split (including case-insensitive category matching and that transfers never count), currency scoping, tenant isolation, period arithmetic for month/quarter/year anchors and partial periods, zero-filled series, outlook verdicts for high/low/in-progress, JSON safety of the payload, empty-ledger behaviour, and recurring-cost detection. |
 | `apps/ops/tests.py` | Superuser gate (anonymous, user and staff-only all rejected), operation registry and argument coercion (including a shell-injection-shaped key), safety policy (destructive blocked by default, read-only always allowed), audit-trail recording of successes *and* failures, `refresh_currencies` skipping when rates are fresh, integrity detection of balance drift and cross-tenant links, JSON-serialisability of the overview payload, and every tenant-admin guard. |
 
 Frontend checks are `npm run lint`, `npm run check:contracts`, `npm run test:dates`
@@ -1066,6 +1190,10 @@ Either way, run `python manage.py check --deploy` before going live.
 * One file per resource area (`AccountsManager`, `TransactionsManager`, …), with
   forms and tables inline while they stay small.
 * Money is handled as a string. No arithmetic on amounts in the browser.
+* Charts are hand-built SVG in `components/charts/` rather than a charting library,
+  to keep the bundle small; the shared helpers in `chartUtils.js` are plain
+  JavaScript, and anything rendering JSX lives in a `.jsx` file (esbuild tolerates
+  JSX in a `.js` file during development, but Rollup fails the production build).
 * **Dates are always `DD/MM/YYYY`, day first** in text, and never derived with
   `new Date(value).toLocaleDateString()`: that would let the browser reorder day and
   month, and — because `new Date('2026-09-08')` means UTC midnight — it renders the
@@ -1089,21 +1217,18 @@ Either way, run `python manage.py check --deploy` before going live.
   newest-first can legitimately place a just-saved entry on page 40, so "did it
   save?" must never depend on finding it. If the selected period excludes the date,
   the confirmation says so and offers a one-click "Show all time".
-* **Ordering by date means "newest month first, then most recently entered".**
-  `ordering=-transaction_date` is translated by
-  `apps/transactions/filters.py::TransactionOrderingFilter` into
-  `-date_month, -created_date, -id`, where `date_month` is a `TruncMonth`
-  annotation. The month stays primary so the historical record reads
-  chronologically — an imported batch and hand-entered rows for the same period
-  sit together instead of being interleaved by typing order — while the insertion
-  tie-break means an entry you just added leads a batch imported earlier for the
-  same month. A pure `-transaction_date` sort is *not* enough: an import puts
-  hundreds of rows on one date and the database is free to return equal keys in any
-  order. The screen offers Date (default), Recently added, and amount sorts, and
-  rows entered in the last 24 hours carry a small "new" badge.
-  This lives in an `OrderingFilter`, not a `FilterSet`, because DRF evaluates
-  `filterset_class` *before* the ordering backend — a FilterSet sees an empty
-  `order_by` and has nothing to translate.
+* **Ordering by date is a plain `-transaction_date` sort.** The label "Date
+  (newest first)" means exactly that: a row dated 13/10 sorts above one dated
+  09/10 even if the 09/10 row was typed afterwards. `apps/transactions/filters.py`
+  appends `-created_date, -id` only as tie-breakers, so several rows sharing one
+  date stay stable across pages — without them, an import puts hundreds of rows on
+  one date and the database may return equal keys in any order. "Most recently
+  entered" regardless of date is the separate `Recently added` sort
+  (`-created_date,-id`). The screen offers Date (default), Recently added, and
+  amount sorts, and rows entered in the last 24 hours carry a small "new" badge.
+  The tie-breakers live in an `OrderingFilter`, not a `FilterSet`, because DRF
+  evaluates `filterset_class` *before* the ordering backend — a FilterSet sees an
+  empty `order_by` and has nothing to extend.
 * `npm run lint` must pass; `npm run build` must succeed.
 
 ---
@@ -1125,10 +1250,15 @@ Known gaps, roughly in priority order.
    schema-driven form.
 6. **API schema and docs.** `drf-spectacular` for an OpenAPI file, then generated
    client types.
-7. **HTTP-only cookie auth** instead of `localStorage` (see
+7. **Budgets in the dashboard.** Budget status is a separate tab; overlaying the
+   envelope on the spending trend would make "am I inside it?" a glance rather than
+   a comparison.
+8. **Seasonality.** `same_period_last_year` is returned but the dashboard only shows
+   the year-on-year figure for the current period.
+9. **HTTP-only cookie auth** instead of `localStorage` (see
    [Planned hardening](#planned-hardening)).
-8. **Soft delete / restore** for accounts and transactions, plus an audit log.
-9. **CSV/PDF export** for tax season.
+10. **Soft delete / restore** for accounts and transactions, plus an audit log.
+11. **CSV/PDF export** for tax season.
 
 ---
 

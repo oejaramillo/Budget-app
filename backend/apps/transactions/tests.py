@@ -3,7 +3,6 @@
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -435,6 +434,60 @@ class TransactionFilterTests(TransactionBaseTestCase):
         )
         self.assertEqual(response.data["count"], 1)
 
+    def test_account_filter_includes_incoming_transfers(self):
+        """Filtering by the destination shows the credit, not just the debit.
+
+        A transfer is stored as one row on the source account. Without the second
+        half of the OR, the destination's history silently omits money it received.
+        """
+        transfer = Transaction.objects.create(
+            user=self.alice,
+            account=self.alice_account,
+            destination_account=self.alice_savings,
+            transaction_type=Transaction.Type.TRANSFER,
+            transaction_date="2026-04-02",
+            amount=Decimal("75.00"),
+            currency=self.usd,
+            description="to savings",
+        )
+        response = self.client.get(
+            f"/api/v1/transactions/?account={self.alice_savings.pk}"
+        )
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], transfer.id)
+
+    def test_account_filter_keeps_outgoing_transfers(self):
+        transfer = Transaction.objects.create(
+            user=self.alice,
+            account=self.alice_account,
+            destination_account=self.alice_savings,
+            transaction_type=Transaction.Type.TRANSFER,
+            transaction_date="2026-04-02",
+            amount=Decimal("75.00"),
+            currency=self.usd,
+            description="to savings",
+        )
+        response = self.client.get(f"/api/v1/transactions/?account={self.alice_account.pk}")
+        # Four expenses plus the outgoing transfer.
+        self.assertEqual(response.data["count"], 5)
+        self.assertIn(transfer.id, [row["id"] for row in response.data["results"]])
+
+    def test_account_filter_with_type_still_handles_both_sides(self):
+        transfer = Transaction.objects.create(
+            user=self.alice,
+            account=self.alice_account,
+            destination_account=self.alice_savings,
+            transaction_type=Transaction.Type.TRANSFER,
+            transaction_date="2026-04-02",
+            amount=Decimal("75.00"),
+            currency=self.usd,
+        )
+        for account in (self.alice_account, self.alice_savings):
+            response = self.client.get(
+                f"/api/v1/transactions/?account={account.pk}&transaction_type=transfer"
+            )
+            self.assertEqual([row["id"] for row in response.data["results"]], [transfer.id])
+
     def test_uncategorised_filter(self):
         Transaction.objects.create(
             user=self.alice,
@@ -551,12 +604,12 @@ class DescriptionSuggestionTests(TransactionBaseTestCase):
 
 
 class TransactionOrderingTests(TransactionBaseTestCase):
-    """Ordering must be deterministic, and "recently added" must beat same-date imports.
+    """Ordering follows the transaction date, and is deterministic on ties.
 
     A real ledger has many rows sharing a transaction date (an import inserts
-    hundreds for the same day). Ordering by date alone leaves their relative order
-    up to the database, so a row entered seconds ago could sit below rows entered
-    days earlier.
+    hundreds for the same day). The date is primary — a newer date always leads,
+    whatever order the rows were typed in — and insertion time only decides which
+    of several same-date rows comes first.
     """
 
     def setUp(self):
@@ -603,9 +656,21 @@ class TransactionOrderingTests(TransactionBaseTestCase):
             .values_list("id", flat=True)
         )))
 
-    def test_date_ordering_is_month_first(self):
-        """Rows from a newer month come first, whatever order they were entered in."""
-        # A row entered last, but dated in an older month.
+    def test_date_ordering_is_newest_date_first(self):
+        """A later calendar date leads, even when it was entered first."""
+        ids = self._ids("ordering=-transaction_date")
+        dates = {
+            row.id: row.transaction_date
+            for row in Transaction.objects.filter(id__in=ids)
+        }
+        self.assertEqual([dates[pk] for pk in ids], sorted(dates.values(), reverse=True))
+        # The 08/09 import was entered before the 01/09 rows, but it is dated later,
+        # so it must still lead them. Grouping by month and then by insertion would
+        # put the 01/09 rows on top — the bug this test exists to catch.
+        self.assertIn(ids[0], self.imported_ids)
+
+    def test_date_ordering_spans_month_boundaries(self):
+        """A row dated last month sorts below every row dated this month."""
         old_month = Transaction.objects.create(
             user=self.alice,
             account=self.alice_account,
@@ -616,40 +681,38 @@ class TransactionOrderingTests(TransactionBaseTestCase):
             description="entered last, dated last month",
         )
         ids = self._ids("ordering=-transaction_date")
-        self.assertNotEqual(ids[0], old_month.id)
-        # Every September row precedes every August row.
-        months = list(
-            Transaction.objects.filter(id__in=ids).values_list("id", "transaction_date")
-        )
-        by_id = dict(months)
-        months_in_order = [by_id[pk].strftime("%Y-%m") for pk in ids]
-        self.assertEqual(months_in_order, sorted(months_in_order, reverse=True))
+        dates = {
+            row.id: row.transaction_date
+            for row in Transaction.objects.filter(id__in=ids)
+        }
+        self.assertEqual([dates[pk] for pk in ids], sorted(dates.values(), reverse=True))
+        self.assertEqual(ids[-1], old_month.id)
 
-    def test_date_ordering_breaks_ties_by_insertion_within_a_month(self):
-        """Inside one month, the most recently entered row leads.
+    def test_ascending_date_ordering_is_respected(self):
+        """`ordering=transaction_date` must not silently stay newest-first."""
+        ids = self._ids("ordering=transaction_date")
+        dates = [
+            Transaction.objects.get(pk=pk).transaction_date
+            for pk in ids
+        ]
+        self.assertEqual(dates, sorted(dates))
 
-        This is the case that made the screen hard to use: a batch imported for the
-        current month used to sit above rows added by hand afterwards.
-        """
+    def test_date_ordering_breaks_ties_by_insertion_on_the_same_date(self):
+        """Among rows sharing a date, the most recently entered leads."""
         ids = self._ids("ordering=-transaction_date")
-        same_month = [
+        same_day = [
             pk
             for pk in ids
-            if Transaction.objects.get(pk=pk).transaction_date.strftime("%Y-%m") == "2026-09"
+            if Transaction.objects.get(pk=pk).transaction_date.isoformat() == "2026-09-08"
         ]
         expected = list(
-            Transaction.objects.filter(pk__in=same_month)
+            Transaction.objects.filter(pk__in=same_day)
             .order_by("-created_date", "-id")
             .values_list("id", flat=True)
         )
-        self.assertEqual(same_month, expected)
-        # The two rows entered most recently lead.
-        newest_two = list(
-            Transaction.objects.filter(description="just entered")
-            .order_by("-id")
-            .values_list("id", flat=True)
-        )
-        self.assertEqual(ids[:2], newest_two)
+        self.assertEqual(same_day, expected)
+        # The three imported rows, newest inserted first (30.00, 20.00, 10.00).
+        self.assertEqual(same_day, list(reversed(self.imported_ids)))
 
     def test_no_ordering_parameter_falls_back_to_date_first(self):
         """The model default keeps newest transaction date on top, ties by insertion.
@@ -676,7 +739,8 @@ class TransactionOrderingTests(TransactionBaseTestCase):
         """The two orders answer different questions, so both must work.
 
         `-created_date` ignores the transaction date entirely; the date order leads
-        with the newest month and only then falls back to insertion time.
+        with the newest transaction date and only uses insertion time to break ties
+        on the same date.
         """
         added_first = self._ids("ordering=-created_date,-id")[0]
         date_first = self._ids("ordering=-transaction_date")[0]
@@ -686,11 +750,10 @@ class TransactionOrderingTests(TransactionBaseTestCase):
         )
         self.assertEqual(added_first, newest_entered.id)
 
-        # Date order: newest month, then most recently entered.
+        # Date order: newest transaction date, then most recently entered.
         expected_date_first = (
             Transaction.objects.filter(user=self.alice)
-            .annotate(month=TruncMonth("transaction_date"))
-            .order_by("-month", "-created_date", "-id")
+            .order_by("-transaction_date", "-created_date", "-id")
             .first()
         )
         self.assertEqual(date_first, expected_date_first.id)

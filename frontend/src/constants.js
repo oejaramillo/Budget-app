@@ -20,6 +20,13 @@ export const ENDPOINTS = {
   me: `${API_PREFIX}/auth/me/`,
   health: `${API_PREFIX}/health/`,
 
+  analyticsDashboard: `${API_PREFIX}/analytics/dashboard/`,
+  analyticsPeriod: `${API_PREFIX}/analytics/period/`,
+  analyticsTrend: `${API_PREFIX}/analytics/trend/`,
+  analyticsCategories: `${API_PREFIX}/analytics/categories/`,
+  analyticsRecurring: `${API_PREFIX}/analytics/recurring/`,
+  analyticsSpending: `${API_PREFIX}/analytics/spending/`,
+
   currencies: `${API_PREFIX}/currencies/`,
   accounts: `${API_PREFIX}/accounts/`,
   budgets: `${API_PREFIX}/budgets/`,

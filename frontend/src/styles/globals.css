@@ -414,3 +414,277 @@ h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
+
+/* ===========================================================================
+   Spending dashboard
+   =========================================================================== */
+
+.spending .section-title {
+  font-size: 1.02rem;
+  margin-bottom: 0.6rem;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.kpi {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-soft);
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.kpi__label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--medium-gray);
+}
+
+.kpi__value {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.kpi__foot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Insights ---------------------------------------------------------------- */
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 0.75rem;
+}
+
+.insight {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  background: var(--white);
+  border-left: 4px solid var(--medium-gray);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-soft);
+  padding: 0.8rem 1rem;
+}
+
+.insight p {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: var(--medium-gray);
+}
+
+.insight__icon {
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.insight--warning { border-left-color: var(--alert-red); }
+.insight--warning .insight__icon { color: var(--alert-red); }
+.insight--good { border-left-color: var(--success-green); }
+.insight--good .insight__icon { color: var(--success-green); }
+.insight--neutral { border-left-color: var(--ocean-blue); }
+.insight--neutral .insight__icon { color: var(--ocean-blue); }
+
+/* Charts ------------------------------------------------------------------ */
+.chart { position: relative; }
+
+.chart-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.9rem;
+  margin-bottom: 0.35rem;
+}
+
+.chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--dark-navy);
+  cursor: pointer;
+}
+
+.chart-legend__item:disabled { cursor: default; }
+.chart-legend__item.is-hidden { opacity: 0.4; text-decoration: line-through; }
+
+.chart-legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.chart-tooltip {
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  box-shadow: var(--shadow-medium);
+  padding: 6px 9px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--dark-navy);
+}
+
+.chart-tooltip strong { display: block; margin-bottom: 2px; }
+
+/* Donut ------------------------------------------------------------------- */
+.donut {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.donut__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
+.donut__legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 3px 0;
+  font-size: 0.85rem;
+  cursor: default;
+}
+
+.donut__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.donut__name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.donut__value { font-variant-numeric: tabular-nums; }
+.donut__share { flex: 0 0 36px; text-align: right; }
+.donut__legend li { font-size: 0.83rem; }
+
+/* Outlook meter ----------------------------------------------------------- */
+.outlook__track {
+  position: relative;
+  height: 16px;
+  background: var(--light-gray);
+  border-radius: 8px;
+  margin: 0.75rem 0 1rem;
+  overflow: visible;
+}
+
+.outlook__bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--sky-blue), var(--ocean-blue));
+  border-radius: 8px 0 0 8px;
+  transition: width 0.3s ease;
+}
+
+.outlook__typical {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--dark-navy);
+}
+
+.outlook__projected {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--deep-orange);
+}
+
+.outlook__projected span {
+  position: absolute;
+  top: -1.15rem;
+  left: 4px;
+  font-size: 0.68rem;
+  color: var(--deep-orange);
+  white-space: nowrap;
+}
+
+.outlook__figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.outlook__figures > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.outlook__figures span { font-size: 0.75rem; }
+.outlook__figures strong { font-size: 1.02rem; font-family: var(--font-heading); }
+
+.mini-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mini-stat span { font-size: 0.75rem; }
+.mini-stat strong { font-family: var(--font-heading); font-size: 1.1rem; }
+
+.trend-hover {
+  position: absolute;
+  right: 0.5rem;
+  top: 2.2rem;
+  width: 230px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.trend-hover ul {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+}
+
+.trend-hover li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1px 0;
+}
+
+.trend-hover li b { margin-left: auto; font-variant-numeric: tabular-nums; }

@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     "apps.transactions",
     "apps.investments",
     "apps.ops",
+    "apps.analytics",
 ]
 
 MIDDLEWARE = [
@@ -237,6 +238,21 @@ BASE_CURRENCY_CODE = "USD"
 
 # exchangerate-api.com key. Optional: without it the app still works, you just
 # cannot refresh rates from the provider.
+# Categories that move money between accounts, to a lender, or into an asset rather
+# than consuming it. Spending analytics report consumption and money movement
+# separately, because adding them together overstates real spending (in this
+# database they are just over 47% of total expenses). Adjust to match your own
+# category names.
+ANALYTICS_MONEY_MOVEMENT_CATEGORIES = [
+    "Transferencia cuentas",
+    "Cambio de moneda",
+    "Préstamos",
+    "Inversión",
+    "Especulación",
+    "Ajuste",
+    "Aportes colectivos",
+]
+
 EXCHANGE_API_KEY = env("EXCHANGE_API_KEY")
 EXCHANGE_API_BASE_URL = env("EXCHANGE_API_BASE_URL")
 EXCHANGE_API_TIMEOUT_SECONDS = 10

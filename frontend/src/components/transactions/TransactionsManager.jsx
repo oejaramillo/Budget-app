@@ -64,12 +64,10 @@ function periodRange(preset) {
 /**
  * Sort orders.
  *
- * `date` is the default and is what a ledger means by "ordered": newest month
- * first, and *within a month* the most recently entered row first. The backend
- * implements that (see `TransactionOrderingFilter`); the value sent here just asks
- * for it. Keeping the month primary means the historical record stays
- * chronological, while the insertion tie-break means an entry you just added leads
- * a batch imported earlier for the same month.
+ * `date` is the default and is what a ledger means by "ordered": newest
+ * transaction date first, with same-date rows broken by insertion time (see
+ * `TransactionOrderingFilter`). A row dated 13/10 therefore leads a row dated
+ * 09/10 even if the 09/10 row was typed afterwards.
  *
  * `added` ignores the transaction date entirely — useful to review a logging
  * session that spanned several dates.
@@ -86,6 +84,22 @@ function isRecentlyAdded(createdDate) {
   if (!createdDate) return false
   const age = Date.now() - new Date(createdDate).getTime()
   return age >= 0 && age < 24 * 60 * 60 * 1000
+}
+
+/**
+ * True when a transfer *credits* `accountId` instead of debiting it.
+ *
+ * A transfer is stored once, on the source account (`account`) with the receiver in
+ * `destination_account`. The list can be filtered by either side, so the row's
+ * amount and account label have to be read from the perspective of the account the
+ * user is looking at.
+ */
+function isIncomingTransfer(transaction, accountId) {
+  return Boolean(
+    accountId &&
+      transaction?.transaction_type === 'transfer' &&
+      Number(transaction.destination_account) === accountId
+  )
 }
 
 const emptyTransaction = {
@@ -179,12 +193,13 @@ export default function TransactionsManager() {
   const categoryOptions = categories.map((item) => ({ value: item.id, label: item.name }))
   const budgetOptions = budgets.map((item) => ({ value: item.id, label: item.name }))
 
-  // Default to the newest account seen in the list; it is almost always the right one.
+  // Default to the account being viewed, else the newest account seen in the list.
   const defaultAccount = useMemo(() => {
+    if (accountFilter) return String(accountFilter)
     const recent = transactions.find((row) => row.account)
     if (recent) return String(recent.account)
     return accounts[0] ? String(accounts[0].id) : ''
-  }, [transactions, accounts])
+  }, [accountFilter, transactions, accounts])
 
   const form = useForm({
     initialValues: emptyTransaction,
@@ -429,8 +444,16 @@ export default function TransactionsManager() {
           <div className="row-between" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
             <span>
               Saved <strong>{lastAdded.description || '(no description)'}</strong> —{' '}
-              {formatMoney(lastAdded.amount, lastAdded.currency_detail?.code)} on{' '}
-              {formatDate(lastAdded.transaction_date)}.
+              {formatMoney(lastAdded.amount, lastAdded.currency_detail?.code)}
+              {lastAdded.transaction_type === 'transfer' &&
+              lastAdded.destination_account_detail ? (
+                <>
+                  {' '}
+                  from {lastAdded.account_detail?.name ?? 'an account'} to{' '}
+                  {lastAdded.destination_account_detail.name}
+                </>
+              ) : null}{' '}
+              on {formatDate(lastAdded.transaction_date)}.
               {lastAdded.outsideRange
                 ? ' The current period excludes that date, so it is pinned above the list.'
                 : ''}
@@ -582,13 +605,26 @@ export default function TransactionsManager() {
               title="This is the entry you just saved"
             >
               <td>{formatDate(lastAdded.transaction_date)}</td>
-              <td>{lastAdded.account_detail?.name ?? '—'}</td>
+              <td>
+                {isIncomingTransfer(lastAdded, accountFilter) ? (
+                  <>
+                    <span className="text-muted">from </span>
+                    {lastAdded.account_detail?.name ?? '—'}
+                  </>
+                ) : (
+                  lastAdded.account_detail?.name ?? '—'
+                )}
+              </td>
               <td>{lastAdded.transaction_type_display}</td>
               <td
                 className={`numeric ${
-                  lastAdded.transaction_type === 'income' ? 'pos' : 'neg'
+                  lastAdded.transaction_type === 'income' ||
+                  isIncomingTransfer(lastAdded, accountFilter)
+                    ? 'pos'
+                    : 'neg'
                 }`}
               >
+                {isIncomingTransfer(lastAdded, accountFilter) ? '+' : ''}
                 {formatMoney(lastAdded.amount, lastAdded.currency_detail?.code)}
               </td>
               <td>{lastAdded.category_detail?.name ?? '—'}</td>
@@ -601,7 +637,8 @@ export default function TransactionsManager() {
 
           {transactions.map((transaction) => {
             const isTransfer = transaction.transaction_type === 'transfer'
-            const isNegative = transaction.transaction_type !== 'income'
+            const incoming = isIncomingTransfer(transaction, accountFilter)
+            const isInflow = transaction.transaction_type === 'income' || incoming
 
             if (editing === transaction.id) {
               return (
@@ -621,7 +658,16 @@ export default function TransactionsManager() {
                       }
                     />
                   </td>
-                  <td>{transaction.account_detail?.name ?? '—'}</td>
+                  <td>
+                    {incoming ? (
+                      <>
+                        <span className="text-muted">from </span>
+                        {transaction.account_detail?.name ?? '—'}
+                      </>
+                    ) : (
+                      transaction.account_detail?.name ?? '—'
+                    )}
+                  </td>
                   <td>{transaction.transaction_type_display}</td>
                   <td>
                     <input
@@ -699,16 +745,26 @@ export default function TransactionsManager() {
                       new
                     </span>
                   )}
-                  {transaction.account_detail?.name ?? '—'}
-                  {transaction.destination_account_detail && (
-                    <span className="text-muted">
-                      {' → '}
-                      {transaction.destination_account_detail.name}
-                    </span>
+                  {incoming ? (
+                    <>
+                      <span className="text-muted">from </span>
+                      {transaction.account_detail?.name ?? '—'}
+                    </>
+                  ) : (
+                    <>
+                      {transaction.account_detail?.name ?? '—'}
+                      {transaction.destination_account_detail && (
+                        <span className="text-muted">
+                          {' → '}
+                          {transaction.destination_account_detail.name}
+                        </span>
+                      )}
+                    </>
                   )}
                 </td>
                 <td>{transaction.transaction_type_display}</td>
-                <td className={`numeric ${isNegative ? 'neg' : 'pos'}`}>
+                <td className={`numeric ${isInflow ? 'pos' : 'neg'}`}>
+                  {incoming ? '+' : ''}
                   {formatMoney(transaction.amount, transaction.currency_detail?.code)}
                 </td>
                 <td>{transaction.category_detail?.name ?? '—'}</td>

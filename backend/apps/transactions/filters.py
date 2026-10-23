@@ -9,34 +9,32 @@ filter is almost never what a person wants — "show me March" is the common cas
 """
 
 import django_filters as filters
-from django.db.models import F, QuerySet
-from django.db.models.functions import TruncMonth
+from django.db.models import Q, QuerySet
 from rest_framework.filters import OrderingFilter
 
 from .models import Transaction
 
-#: Fallback tie-breakers when a caller sorts by something other than the month.
+#: Fallback tie-breakers. A ledger has many rows sharing a transaction date (an
+#: import inserts hundreds for the same day), and without a total order the database
+#: is free to return those rows in any sequence — which breaks pagination.
 _TIEBREAKERS = ("-created_date", "-id")
-
-#: Annotation holding the month (`2026-09-01`) a transaction belongs to.
-MONTH_FIELD = "date_month"
 
 
 class TransactionOrderingFilter(OrderingFilter):
-    """Ordering that matches how a ledger is actually read.
+    """Deterministic ordering that keeps same-day rows stable.
 
-    **Newest month first, and within a month the most recently entered first.**
+    ``ordering=-transaction_date`` means exactly what the UI label says: the newest
+    calendar date first. It is **not** grouped by month, and insertion order never
+    overrides the transaction date — a row dated 13/10 sorts above one dated 09/10
+    even if the latter was typed more recently. "Most recently entered first"
+    regardless of date is a separate sort (``-created_date,-id``).
 
-    * Month-first keeps the record chronological, so an imported batch and the rows
-      entered by hand for the same period sit together instead of being interleaved
-      by the order they happened to be typed in.
-    * Newest-entered-first *inside* a month is what makes the screen usable while
-      logging: entries added now lead a batch imported earlier for the same month.
+    The tie-breakers only decide rows that share the same date (or the same value of
+    whatever field is being sorted), so a page boundary never repeats or drops a row.
 
     This has to be an `OrderingFilter`, not a FilterSet method: DRF evaluates
     `filterset_class` **before** the ordering backend, so a FilterSet sees an empty
-    `order_by` and has nothing to translate. Any other sort field is passed straight
-    through to the default implementation.
+    `order_by` and has nothing to extend.
     """
 
     def filter_queryset(self, request, queryset: QuerySet, view) -> QuerySet:
@@ -44,13 +42,6 @@ class TransactionOrderingFilter(OrderingFilter):
 
         order_by = list(queryset.query.order_by or ())
         names = [str(term).lstrip("-") for term in order_by]
-
-        if names and names[0] == "transaction_date":
-            # `TruncMonth` on a DateField is a plain calendar truncation: no timezone
-            # conversion, so a stored date keeps its day.
-            return queryset.annotate(**{MONTH_FIELD: TruncMonth("transaction_date")}).order_by(
-                f"-{MONTH_FIELD}", "-created_date", "-id"
-            )
 
         if names:
             missing = [field for field in _TIEBREAKERS if field.lstrip("-") not in names]
@@ -63,6 +54,12 @@ class TransactionOrderingFilter(OrderingFilter):
 class TransactionFilter(filters.FilterSet):
     """Filters accepted by `GET /api/v1/transactions/`."""
 
+    #: `?account=7` — everything that moves money on that account, **including
+    #: incoming transfers**. A transfer is one row whose `account` is the source, so
+    #: an exact-match filter would hide the credit from the destination's history.
+    account = filters.NumberFilter(method="filter_account")
+    #: `?destination_account=7` — only the incoming side of transfers.
+    destination_account = filters.NumberFilter(field_name="destination_account")
     date_from = filters.DateFilter(field_name="transaction_date", lookup_expr="gte")
     date_to = filters.DateFilter(field_name="transaction_date", lookup_expr="lte")
     amount_min = filters.NumberFilter(field_name="amount", lookup_expr="gte")
@@ -77,13 +74,20 @@ class TransactionFilter(filters.FilterSet):
     class Meta:
         model = Transaction
         fields = [
-            "account",
             "destination_account",
             "category",
             "budget",
             "transaction_type",
             "transaction_date",
         ]
+
+    def filter_account(self, queryset, name, value):
+        """Both sides of a transfer: the source account and the destination.
+
+        `destination_account` is null on income/expense rows, so this only widens
+        the result for transfers — no other transaction type can match by accident.
+        """
+        return queryset.filter(Q(account=value) | Q(destination_account=value))
 
     def filter_month(self, queryset, name, value):
         """Filter to a single `YYYY-MM` period."""

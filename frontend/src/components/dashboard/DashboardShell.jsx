@@ -8,6 +8,7 @@ import BudgetsManager from '../budgets/BudgetsManager'
 import CategoriesManager from '../categories/CategoriesManager'
 import CurrenciesManager from '../currencies/CurrenciesManager'
 import Dashboard from '../dashboard/Dashboard'
+import SpendingDashboard from '../dashboard/SpendingDashboard'
 import HoldingsManager from '../investments/HoldingsManager'
 import TransactionsManager from '../transactions/TransactionsManager'
 
@@ -40,6 +41,9 @@ export default function DashboardShell() {
   const { user, logout } = useAuthContext()
   const { currencies } = useCurrencies()
   const [activeTab, setActiveTab] = useState('overview')
+  // The overview holds two lenses: how spending behaves (the reason for the tab)
+  // and where the money currently sits.
+  const [overviewView, setOverviewView] = useState('spending')
   const [targetCurrency, setTargetCurrency] = useState('')
 
   const principal = currencies.find((currency) => currency.principal)
@@ -64,7 +68,11 @@ export default function DashboardShell() {
         return <SuperuserHub />
       case 'overview':
       default:
-        return <Dashboard targetCurrency={targetCurrency || undefined} />
+        return overviewView === 'spending' ? (
+          <SpendingDashboard />
+        ) : (
+          <Dashboard targetCurrency={targetCurrency || undefined} />
+        )
     }
   }
 
@@ -156,6 +164,29 @@ export default function DashboardShell() {
               </button>
             ))}
           </div>
+
+          {activeTab === 'overview' && (
+            <div className="tabs mb-2" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                className="tab"
+                aria-selected={overviewView === 'spending'}
+                onClick={() => setOverviewView('spending')}
+              >
+                Spending
+              </button>
+              <button
+                type="button"
+                role="tab"
+                className="tab"
+                aria-selected={overviewView === 'balances'}
+                onClick={() => setOverviewView('balances')}
+              >
+                Balances
+              </button>
+            </div>
+          )}
 
           <div className="card">{renderTab()}</div>
         </div>
